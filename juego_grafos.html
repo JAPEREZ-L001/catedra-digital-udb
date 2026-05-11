@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Graph Explorer: Reto de la Ruta Más Corta</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Fira+Code&display=swap');
 
@@ -455,12 +456,13 @@
             
             <div class="input-group">
                 <label for="player-name-input">Nombre de Jugador:</label>
-                <input type="text" id="player-name-input" placeholder="Ej. Ada Lovelace" autocomplete="off" onkeydown="if(event.key === 'Enter') startGame()">
+                <input type="text" id="player-name-input" placeholder="Ej. Ada Lovelace" autocomplete="off" onkeydown="if(event.key === 'Enter' && !document.getElementById('btn-start-game').disabled) startGame()">
+                <small id="name-feedback" style="display: block; margin-top: 5px; height: 16px; font-size: 0.85rem; transition: color 0.3s;"></small>
             </div>
             
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="showLeaderboard()">🏆 Ver Récords</button>
-                <button class="btn btn-primary" onclick="startGame()">Comenzar a Jugar ▶</button>
+                <button id="btn-start-game" class="btn btn-primary" onclick="startGame()">Comenzar a Jugar ▶</button>
             </div>
         </div>
     </div>
@@ -688,7 +690,57 @@
             a11yOptions: document.getElementById('a11y-options')
         };
 
+        // --- INICIALIZAR SUPABASE ---
+        const SUPABASE_URL = 'https://okefubfoshunnnjjrozy.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_GfuLYt8db0J7JVGWSmtWdQ_-gKeWAy_';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         // --- GESTIÓN DE USUARIO Y RECORDS ---
+        let checkNameTimeout;
+
+        document.getElementById('player-name-input').addEventListener('input', (e) => {
+            const btn = document.getElementById('btn-start-game');
+            const feedback = document.getElementById('name-feedback');
+            const name = e.target.value.trim();
+
+            if (name === '') {
+                feedback.textContent = '';
+                btn.disabled = false;
+                return;
+            }
+
+            feedback.textContent = 'Comprobando disponibilidad...';
+            feedback.style.color = '#94a3b8';
+            btn.disabled = true;
+
+            clearTimeout(checkNameTimeout);
+            checkNameTimeout = setTimeout(async () => {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('jugadores')
+                        .select('id')
+                        .eq('nombre', name)
+                        .limit(1);
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        feedback.textContent = '❌ Nombre ya registrado. Elige otro.';
+                        feedback.style.color = 'var(--error-color)';
+                        btn.disabled = true;
+                    } else {
+                        feedback.textContent = '✅ Nombre disponible.';
+                        feedback.style.color = 'var(--success-color)';
+                        btn.disabled = false;
+                    }
+                } catch (err) {
+                    console.error('Error al comprobar nombre:', err);
+                    feedback.textContent = '⚠️ Error al verificar.';
+                    feedback.style.color = 'var(--warning-color)';
+                    btn.disabled = false;
+                }
+            }, 400);
+        });
 
         function startGame() {
             const input = document.getElementById('player-name-input');
@@ -715,40 +767,74 @@
             document.getElementById('leaderboard-modal').classList.remove('visible');
         }
 
-        function saveRecord(name, score) {
-            let records = JSON.parse(localStorage.getItem('graphExplorerRecords') || '[]');
-            records.push({ 
-                name: name, 
-                score: score, 
-                date: new Date().toLocaleDateString() 
-            });
-            // Ordenar de mayor a menor puntuación
-            records.sort((a, b) => b.score - a.score);
-            localStorage.setItem('graphExplorerRecords', JSON.stringify(records));
-        }
-
-        function renderLeaderboard() {
-            let records = JSON.parse(localStorage.getItem('graphExplorerRecords') || '[]');
-            const tbody = document.getElementById('leaderboard-tbody');
-            tbody.innerHTML = '';
-            
-            if(records.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">No hay récords aún. ¡Sé el primero!</td></tr>';
-                return;
+        async function saveRecord(name, score) {
+            try {
+                // Guarda en Supabase
+                const { error } = await supabaseClient
+                    .from('jugadores')
+                    .insert([{ nombre: name, puntos: score }]);
+                
+                if (error) {
+                    console.error('Error al guardar récord en Supabase:', error);
+                } else {
+                    console.log('Récord guardado exitosamente');
+                }
+            } catch (err) {
+                console.error('Error de red al guardar:', err);
             }
-
-            records.slice(0, 8).forEach((rec, index) => {
-                let medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td style="font-weight:600;">${medal}${rec.name}</td>
-                        <td style="color:var(--success-color); font-weight:bold; font-family:'Fira Code';">${rec.score} pts</td>
-                        <td style="color:#94a3b8; font-size:0.9rem;">${rec.date}</td>
-                    </tr>
-                `;
-            });
         }
+
+        async function renderLeaderboard() {
+            const tbody = document.getElementById('leaderboard-tbody');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Cargando récords...</td></tr>';
+            
+            try {
+                // Obtener datos de Supabase ordenados por puntos descendente
+                const { data: records, error } = await supabaseClient
+                    .from('jugadores')
+                    .select('nombre, puntos, fecha')
+                    .order('puntos', { ascending: false })
+                    .limit(8);
+
+                if (error) {
+                    throw error;
+                }
+                
+                tbody.innerHTML = '';
+                if(!records || records.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">No hay récords aún. ¡Sé el primero!</td></tr>';
+                    return;
+                }
+
+                records.forEach((rec, index) => {
+                    let medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
+                    let fechaStr = new Date(rec.fecha).toLocaleDateString();
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td style="font-weight:600;">${medal}${rec.nombre}</td>
+                            <td style="color:var(--success-color); font-weight:bold; font-family:'Fira Code';">${rec.puntos} pts</td>
+                            <td style="color:#94a3b8; font-size:0.9rem;">${fechaStr}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error('Error al cargar records:', err);
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ef4444;">Error al cargar récords</td></tr>';
+            }
+        }
+
+        // --- REALTIME SUBSCRIPTION ---
+        supabaseClient
+          .channel('public:jugadores')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jugadores' }, payload => {
+              console.log('Nuevo récord detectado:', payload.new);
+              // Actualizar leaderboard si está visible
+              if (document.getElementById('leaderboard-modal').classList.contains('visible')) {
+                  renderLeaderboard();
+              }
+          })
+          .subscribe();
 
 
         // --- LÓGICA DEL JUEGO ---
@@ -1113,6 +1199,7 @@
         }
 
         function showGameComplete() {
+            if (animationFrame) cancelAnimationFrame(animationFrame);
             uiElements.levelModal.classList.remove('visible');
             
             const container = document.getElementById('game-container');

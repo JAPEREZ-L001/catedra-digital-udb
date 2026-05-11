@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS partidas (
 CREATE TABLE IF NOT EXISTS jugadores (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   partida_id UUID REFERENCES partidas(id),
-  nombre TEXT NOT NULL
+  nombre TEXT NOT NULL,
+  puntos INTEGER DEFAULT 0,
+  fecha TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
 -- 2. Habilitar el Realtime en las tablas creadas
