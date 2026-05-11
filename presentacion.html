@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Ruta Más Corta entre Grafos</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Fira+Code&display=swap');
+
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #e2e8f0;
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.5);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(15, 23, 42, 1), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.1), transparent 25%);
+        }
+
+        #presentation-container {
+            width: 90vw;
+            height: 85vh;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transform: translateY(50px) scale(0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2.5rem 4rem; /* Reducido para dar más espacio */
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            overflow-y: auto; /* Permitir scroll si el contenido es muy alto */
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-15px);
+            }
+
+            40% {
+                transform: translateX(10px);
+            }
+
+            60% {
+                transform: translateX(-10px);
+            }
+
+            80% {
+                transform: translateX(5px);
+            }
+        }
+
+        .shake-animation {
+            animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem; /* Reducido */
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        h2 {
+            font-size: 2.2rem; /* Ligeramente más pequeño */
+            color: var(--accent-color);
+            margin-bottom: 1.2rem; /* Reducido */
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.4rem; /* Ligeramente más pequeño */
+            color: #94a3b8;
+            margin-bottom: 0.8rem;
+        }
+
+        p,
+        li {
+            font-size: 1.15rem; /* Un poco más pequeño */
+            line-height: 1.5;
+            margin-bottom: 0.8rem;
+            color: #cbd5e1;
+        }
+
+        ul {
+            text-align: left;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+
+        li {
+            margin-bottom: 0.6rem;
+            position: relative;
+            padding-left: 1.5rem;
+            list-style-type: none;
+        }
+
+        li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .table-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        th,
+        td {
+            padding: 0.8rem; /* Reducido */
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        th {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 10px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+        }
+
+        button {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s, transform 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        button:hover {
+            color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.05);
+            transform: scale(1.1);
+        }
+
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            transition: width 0.3s ease;
+            z-index: 100;
+        }
+
+        .speaker-notes {
+            margin-top: 1.5rem; /* Margen superior en lugar de bottom absoluto */
+            font-size: 0.95rem;
+            color: #64748b;
+            font-style: italic;
+            max-width: 90%;
+            text-align: center;
+            border-top: 1px solid var(--card-border);
+            padding-top: 0.8rem;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        pre {
+            background: #0f172a;
+            padding: 1rem; /* Reducido */
+            border-radius: 12px;
+            font-family: 'Fira Code', monospace;
+            text-align: left;
+            font-size: 0.95rem; /* Reducido */
+            border: 1px solid var(--card-border);
+            color: #a3e635;
+        }
+
+        .two-columns {
+            display: flex;
+            gap: 1.5rem; /* Reducido */
+            width: 100%;
+            align-items: center;
+        }
+
+        .col {
+            flex: 1;
+            text-align: left;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            text-align: left;
+            margin-top: 2rem;
+        }
+
+        .team-member {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .team-member-name {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .team-member-id {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        .type-btn {
+            padding: 12px 20px;
+            border-radius: 12px;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .type-btn:hover {
+            background: rgba(56, 189, 248, 0.1);
+            border-color: rgba(56, 189, 248, 0.4);
+            transform: translateX(5px);
+        }
+
+        .type-btn.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2));
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px var(--accent-glow);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .type-btn i {
+            font-size: 1.2rem;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .canvas-container {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="presentation-container">
+
+        <!-- Slide 1: Portada -->
+        <div class="slide active">
+            <div style="text-align: center; margin-bottom: 1.2rem;">
+                <img src="img/udb_logo.jpg" alt="Logo UDB" style="height: 80px; margin-bottom: 0.8rem; border-radius: 8px;">
+                <h2 style="color: #38bdf8; font-size: 1.3rem; margin: 0; letter-spacing: 2px;">UNIVERSIDAD DON BOSCO</h2>
+                <h3 style="color: #94a3b8; font-size: 0.9rem; font-weight: normal;">(CAMPUS ANTIGUO CUSCATLÁN)</h3>
+            </div>
+
+            <h1 style="font-size: 2.4rem; margin-bottom: 0.5rem; background: linear-gradient(90deg, #fff, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">La Ruta Más Corta entre Grafos</h1>
+            <h3 style="color: #e2e8f0; font-weight: 500; margin-bottom: 1.2rem; font-size: 1rem;">PROGRAMACIÓN CON ESTRUCTURAS DE DATOS - GRUPO G01T</h3>
+
+            <div style="display: flex; justify-content: center; gap: 3rem; margin-bottom: 1.2rem; font-size: 0.85rem; color: #94a3b8;">
+                <span><strong>Ciclo:</strong> 03</span>
+                <span><strong>Fecha:</strong> 12/05/2026</span>
+            </div>
+
+            <div class="team-grid" style="gap: 0.8rem;">
+                <div class="team-member">
+                    <div class="team-member-name">Mario Alejandro Noubleau Callejas</div>
+                    <div class="team-member-id">NC250266</div>
+                </div>
+                <div class="team-member">
+                    <div class="team-member-name">Josué Adonaí Pérez López</div>
+                    <div class="team-member-id">PL250205</div>
+                </div>
+                <div class="team-member">
+                    <div class="team-member-name">Paola Elizabeth Carballo Quijada</div>
+                    <div class="team-member-id">CQ250338</div>
+                </div>
+                <div class="team-member">
+                    <div class="team-member-name">Rodrigo Abel Joyar González</div>
+                    <div class="team-member-id">JG251114</div>
+                </div>
+                <div class="team-member" style="grid-column: span 2; text-align: center;">
+                    <div class="team-member-name">Gabriel Ernesto López Breucop</div>
+                    <div class="team-member-id">LB250311</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 0.3rem;">Catedrático:</p>
+                <p style="color: #38bdf8; font-weight: 600; font-size: 1rem;">ING. RAFAEL TORRES RODRÍGUEZ</p>
+            </div>
+
+            <div class="speaker-notes">"Buen día / Buenas tardes. Somos el grupo y hoy les presentamos uno de los temas más utilizados en informática: cómo encontrar la ruta más corta dentro de un grafo en la materia de Programación con Estructuras de Datos."</div>
+        </div>
+
+        <!-- Slide 2: Introducción -->
+        <div class="slide">
+            <h2>Introducción</h2>
+            <div style="text-align: left; max-width: 800px;">
+                <ul>
+                    <li>¿Cuántas veces al día usamos Google Maps?</li>
+                    <li>¿Cómo sabe el GPS cuál es el camino más rápido?</li>
+                    <li>La respuesta está en los <strong>grafos y sus algoritmos de camino más corto</strong></li>
+                    <li>Veremos: qué son, cómo funcionan y para qué sirven</li>
+                </ul>
+            </div>
+            <div class="speaker-notes">"Imaginen que salen de casa y quieren llegar a la universidad lo más rápido
+                posible. Su GPS les da una ruta en segundos. ¿Cómo lo hace? Usa grafos."</div>
+        </div>
+
+        <!-- Slide 3: Qué es un grafo -->
+        <div class="slide">
+            <h2>¿Qué es un Grafo?</h2>
+            <div class="two-columns" style="align-items: center; gap: 2.5rem; max-width: 1050px;">
+                <div class="col" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <p style="color: #cbd5e1; margin-bottom: 0.5rem; font-size: 1rem;">Una estructura que modela relaciones. Pasa el ratón para explorar:</p>
+                    
+                    <div id="card-nodos" style="background: rgba(15, 23, 42, 0.6); padding: 1.2rem; border-radius: 8px; border-left: 4px solid #38bdf8; cursor: pointer; transition: all 0.3s ease;">
+                        <h3 style="color: #38bdf8; margin: 0 0 0.5rem 0; font-size: 1.2rem;">🔵 Nodos (Vértices)</h3>
+                        <p style="margin: 0; font-size: 0.9rem; color: #94a3b8;">Las entidades principales. Representan lugares, personas, servidores o cruces.</p>
+                    </div>
+
+                    <div id="card-aristas" style="background: rgba(15, 23, 42, 0.6); padding: 1.2rem; border-radius: 8px; border-left: 4px solid #a3e635; cursor: pointer; transition: all 0.3s ease;">
+                        <h3 style="color: #a3e635; margin: 0 0 0.5rem 0; font-size: 1.2rem;">➖ Aristas (Edges)</h3>
+                        <p style="margin: 0; font-size: 0.9rem; color: #94a3b8;">Las conexiones físicas o lógicas entre los nodos. Son las "carreteras".</p>
+                    </div>
+
+                    <div id="card-pesos" style="background: rgba(15, 23, 42, 0.6); padding: 1.2rem; border-radius: 8px; border-left: 4px solid #facc15; cursor: pointer; transition: all 0.3s ease;">
+                        <h3 style="color: #facc15; margin: 0 0 0.5rem 0; font-size: 1.2rem;">🏷️ Pesos (Weights)</h3>
+                        <p style="margin: 0; font-size: 0.9rem; color: #94a3b8;">El "costo" de viajar por una arista. Puede representar kilómetros o tiempo.</p>
+                    </div>
+                </div>
+                <div class="col" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 2rem; border-radius: 12px; border: 1px solid var(--card-border); box-shadow: 0 10px 25px rgba(0,0,0,0.3); position: relative; overflow: hidden; width: 100%;">
+                        <canvas id="slide3Canvas" width="350" height="250" style="max-width: 100%;"></canvas>
+                        <p id="slide3Caption" style="margin-top: 1.5rem; color: #94a3b8; font-size: 0.95rem; min-height: 24px; font-style: italic;">Pasa el ratón sobre las tarjetas para interactuar</p>
+                    </div>
+                </div>
+            </div>
+            <div class="speaker-notes">"Un grafo es como un mapa interactivo. Los nodos son las ciudades, las aristas las carreteras, y los pesos nos dicen cuánto combustible o tiempo cuesta viajar por ellas."</div>
+        </div>
+
+        <!-- Slide 4: Ruta más corta -->
+        <div class="slide">
+            <h2>¿Qué es la Ruta Más Corta?</h2>
+            <ul>
+                <li>Es el <strong>camino entre dos nodos</strong> que tiene el <strong>menor costo total</strong></li>
+                <li>"Más corta" no siempre significa menos paradas, sino <strong>menor peso acumulado</strong></li>
+            </ul>
+            <div class="two-columns" style="margin-top: 1rem;">
+                <div class="col" style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; text-align: left;">
+                    <p style="margin-bottom: 1rem;"><strong>Compara las rutas de A hacia B:</strong></p>
+                    
+                    <button id="btnRoute1" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s;">
+                        <span>📍 Directa: A → B</span>
+                        <span style="color: #ef4444; font-weight: bold;">Costo: 10</span>
+                    </button>
+                    
+                    <button id="btnRoute2" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 15px; border-radius: 8px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s;">
+                        <span>📍 Con paradas: A → C → D → B</span>
+                        <span style="color: #10b981; font-weight: bold;">Costo: 6</span>
+                    </button>
+                    
+                    <div id="slide4Result" style="opacity: 0; transition: opacity 0.3s; color: #10b981; font-weight: bold; text-align: center; padding: 0.8rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                        ✨ ¡Más paradas, pero menor peso!
+                    </div>
+                </div>
+                <div class="col" style="text-align: center;">
+                    <canvas id="slide4Canvas" width="300" height="220"
+                        style="background: rgba(15, 23, 42, 0.5); border-radius: 12px; border: 1px solid var(--card-border);"></canvas>
+                </div>
+            </div>
+            <div class="speaker-notes">"La ruta más corta no siempre es la que tiene menos paradas. Es la que tiene el
+                menor costo total. Como vemos en este nuevo ejemplo, ir directo cuesta 10, pero dar una vuelta cuesta solo 6."</div>
+        </div>
+
+        <!-- Slide 5: Tipos de grafos -->
+        <div class="slide">
+            <h2>Tipos de Grafos</h2>
+            <p style="margin-bottom: 1.5rem; color: #cbd5e1;">Selecciona un tipo para ver cómo cambian las conexiones:</p>
+            
+            <div class="two-columns" style="align-items: center; gap: 2.5rem; max-width: 1000px; margin-top: 1rem;">
+                <div class="col" style="display: flex; flex-direction: column; gap: 1rem; flex: 0.7;">
+                    <button id="btnTypeNoDir" class="type-btn active">
+                        <i>↔️</i> <span>No Dirigido</span>
+                    </button>
+                    <button id="btnTypeDir" class="type-btn">
+                        <i>➡️</i> <span>Dirigido</span>
+                    </button>
+                    <button id="btnTypePond" class="type-btn">
+                        <i>⚖️</i> <span>Ponderado</span>
+                    </button>
+                    <button id="btnTypeNoPond" class="type-btn">
+                        <i>⚪</i> <span>No Ponderado</span>
+                    </button>
+                </div>
+                
+                <div class="col" style="flex: 1.3;">
+                    <div class="canvas-container">
+                        <div style="flex: 1; display: flex; justify-content: center; align-items: center; padding: 2rem; min-height: 250px;">
+                            <canvas id="slide5Canvas" width="400" height="220" style="max-width: 100%;"></canvas>
+                        </div>
+                        <div id="typeDescription" style="padding: 1.5rem; background: rgba(0, 0, 0, 0.4); border-top: 1px solid var(--card-border); text-align: left; border-radius: 0 0 16px 16px;">
+                            <h3 style="color: var(--accent-color); margin-bottom: 0.6rem; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+                                <span id="typeTitle">Conexiones bidireccionales</span>
+                            </h3>
+                            <p id="typeText" style="font-size: 1rem; color: #cbd5e1; margin-bottom: 0.8rem; line-height: 1.4;">Si A está conectado con B, automáticamente B está conectado con A.</p>
+                            <p id="typeEx" style="font-size: 0.9rem; color: #94a3b8; font-style: italic; display: flex; align-items: center; gap: 6px;">💡 Ej: Redes sociales, cables de red.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="speaker-notes">"Existen distintos tipos de grafos. Los no dirigidos son de doble vía, los dirigidos tienen sentido único. Los ponderados tienen un 'costo' por viaje, y son los que más usamos en sistemas de optimización."</div>
+        </div>
+
+        <!-- Slide 6: Algoritmo de Dijkstra -->
+        <div class="slide">
+            <h2>Algoritmo de Dijkstra</h2>
+            <div class="two-columns" style="align-items: stretch; max-width: 1050px; gap: 2rem;">
+                
+                <!-- Columna Izquierda: Qué es y Limitación -->
+                <div class="col" style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem;">
+                    
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--card-border); border-left: 4px solid #0ea5e9;">
+                        <h3 style="color: #38bdf8; font-size: 1.2rem; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 8px;">🎯 ¿Qué hace?</h3>
+                        <p style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 0.8rem;">
+                            Encuentra la <strong>ruta más corta garantizada</strong> desde un nodo de origen hacia todos los demás nodos de la red.
+                        </p>
+                        <p style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">
+                            💡 Dato curioso: Fue diseñado en 20 minutos por Edsger Dijkstra tomando un café en 1956.
+                        </p>
+                    </div>
+
+                    <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 1.5rem; border-radius: 12px; border-left: 4px solid #f59e0b;">
+                        <h3 style="color: #f59e0b; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">⚠️ Su Debilidad</h3>
+                        <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.5;">
+                            Dijkstra es "optimista" y asume que avanzar siempre cuesta. Si una ruta tiene un <strong>costo negativo</strong> (ej. ganar dinero al viajar), el algoritmo tomará malas decisiones y fallará.
+                        </p>
+                    </div>
+
+                </div>
+
+                <!-- Columna Derecha: Pasos Visuales -->
+                <div class="col" style="flex: 1.2;">
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 2rem; border-radius: 12px; border: 1px solid var(--card-border); height: 100%;">
+                        <h3 style="color: white; font-size: 1.2rem; margin-bottom: 1.5rem; text-align: center;">¿Cómo piensa el algoritmo?</h3>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div style="width: 40px; height: 40px; background: #0ea5e9; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; flex-shrink: 0;">1</div>
+                                <div>
+                                    <h4 style="color: #e2e8f0; font-size: 1rem; margin-bottom: 0.2rem;">Ignorancia Inicial</h4>
+                                    <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Asume que todos los lugares están a una distancia <strong>infinita (∞)</strong>, excepto tu punto de partida (distancia 0).</p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div style="width: 40px; height: 40px; background: #0ea5e9; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; flex-shrink: 0;">2</div>
+                                <div>
+                                    <h4 style="color: #e2e8f0; font-size: 1rem; margin-bottom: 0.2rem;">El Más Cercano Primero</h4>
+                                    <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Mira a tu alrededor y selecciona el nodo no visitado al que te cueste <strong>menos esfuerzo</strong> llegar.</p>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div style="width: 40px; height: 40px; background: #0ea5e9; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; flex-shrink: 0;">3</div>
+                                <div>
+                                    <h4 style="color: #e2e8f0; font-size: 1rem; margin-bottom: 0.2rem;">Búsqueda de Atajos</h4>
+                                    <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Desde ese lugar, evalúa las rutas hacia los vecinos. Si ir por ahí es <strong>más barato</strong>, actualiza su distancia.</p>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div style="width: 40px; height: 40px; background: #0ea5e9; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem; flex-shrink: 0;">4</div>
+                                <div>
+                                    <h4 style="color: #e2e8f0; font-size: 1rem; margin-bottom: 0.2rem;">Repetir y Cerrar</h4>
+                                    <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Marca el nodo como <strong>completado</strong> (ya no volverás a él) y repite el proceso.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="speaker-notes">"Dijkstra funciona como una persona explorando un mapa: siempre elige el camino más barato inmediato. Ojo: falla si alguien te paga por viajar (pesos negativos). Sus 4 pasos son pura lógica y sentido común."</div>
+        </div>
+
+        <!-- Slide 7: Complejidad Computacional -->
+        <div class="slide">
+            <h2>Complejidad Computacional</h2>
+            <div class="two-columns" style="align-items: stretch; max-width: 1000px; gap: 2.5rem;">
+                
+                <!-- Complejidad Temporal -->
+                <div class="col" style="display: flex; flex-direction: column;">
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 2rem; border-radius: 12px; border: 1px solid var(--card-border); height: 100%;">
+                        <h3 style="color: #38bdf8; font-size: 1.3rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px;">⏱️ Tiempo de Ejecución</h3>
+                        
+                        <div style="background: rgba(0,0,0,0.3); padding: 1.2rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 600; color: #cbd5e1;">Arreglo Simple</span>
+                                <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 10px; border-radius: 20px; font-family: monospace; font-weight: bold;">O(V²)</span>
+                            </div>
+                            <p style="font-size: 0.85rem; color: #94a3b8; margin: 0; line-height: 1.4;">Ideal para grafos muy densos, donde la cantidad de aristas es inmensa (E ≈ V²).</p>
+                        </div>
+
+                        <div style="background: rgba(163, 230, 53, 0.05); padding: 1.2rem; border-radius: 8px; border: 1px solid rgba(163, 230, 53, 0.3);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 600; color: #a3e635;">Cola de Prioridad <small>(Min-Heap)</small></span>
+                                <span style="background: rgba(163, 230, 53, 0.2); color: #a3e635; padding: 4px 10px; border-radius: 20px; font-family: monospace; font-weight: bold;">O((V+E) log V)</span>
+                            </div>
+                            <p style="font-size: 0.85rem; color: #94a3b8; margin: 0; line-height: 1.4;">La implementación más rápida y común. Perfecta para mapas y redes dispersas habituales.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Complejidad Espacial -->
+                <div class="col" style="display: flex; flex-direction: column;">
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 2rem; border-radius: 12px; border: 1px solid var(--card-border); height: 100%;">
+                        <h3 style="color: #facc15; font-size: 1.3rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px;">💾 Memoria (Espacio)</h3>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                            <span style="font-weight: 600; color: #cbd5e1; font-size: 1.05rem;">Costo Adicional:</span>
+                            <span style="background: rgba(250, 204, 21, 0.15); color: #facc15; padding: 6px 14px; border-radius: 20px; font-family: monospace; font-weight: bold; font-size: 1.1rem;">O(V)</span>
+                        </div>
+
+                        <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 1.2rem;">Es muy eficiente. Solo necesitamos rastrear <strong>dos variables</strong> por cada nodo de la red:</p>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                            <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border-left: 3px solid #38bdf8;">
+                                <div style="font-size: 1.2rem;">📏</div>
+                                <div style="font-size: 0.95rem; color: #e2e8f0;">Un arreglo para guardar las <strong>distancias</strong>.</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border-left: 3px solid #a3e635;">
+                                <div style="font-size: 1.2rem;">👣</div>
+                                <div style="font-size: 0.95rem; color: #e2e8f0;">Un arreglo de <strong>nodos previos</strong> (para trazar la ruta de vuelta).</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="speaker-notes">"En términos de rendimiento, la Cola de Prioridad es lo que hace a Dijkstra un algoritmo estrella, bajando el tiempo exponencialmente. Espacialmente es súper ligero, solo requiere un par de listas."</div>
+        </div>
+
+
+        <!-- Slide 8: Pseudocódigo -->
+        <div class="slide">
+            <h2>Pseudocódigo Explicado</h2>
+            <div class="two-columns" style="align-items: stretch; max-width: 1050px; gap: 2.5rem;">
+                <div class="col" style="flex: 1.2;">
+                    <div style="background: #0f172a; border-radius: 12px; border: 1px solid var(--card-border); overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                        <div style="background: rgba(255,255,255,0.05); padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 8px;">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: #ef4444;"></div>
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: #eab308;"></div>
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: #22c55e;"></div>
+                        </div>
+                        <pre style="font-size: 0.9rem; line-height: 1.6; padding: 1.5rem; margin: 0; overflow-x: auto; font-family: monospace;">
+<span style="color: #c678dd;">función</span> <span style="color: #61afef;">Dijkstra</span>(Grafo <span style="color: #e5c07b;">G</span>, Nodo <span style="color: #e5c07b;">inicio</span>):
+  <span style="color: #5c6370; font-style: italic;">// 1. Preparación</span>
+  <span style="color: #c678dd;">para cada</span> nodo <span style="color: #e5c07b;">v</span> <span style="color: #c678dd;">en</span> G:
+    dist[v] = <span style="color: #d19a66;">&infin;</span>
+    previo[v] = <span style="color: #d19a66;">nulo</span>
+  
+  dist[inicio] = <span style="color: #d19a66;">0</span>
+  Q = Nodos no visitados
+
+  <span style="color: #5c6370; font-style: italic;">// 2. Exploración</span>
+  <span style="color: #c678dd;">mientras</span> Q <span style="color: #c678dd;">no esté</span> vacío:
+    u = Nodo en Q con menor dist[u]
+    eliminar u de Q
+
+    <span style="color: #5c6370; font-style: italic;">// 3. Relajación de aristas</span>
+    <span style="color: #c678dd;">para cada</span> vecino <span style="color: #e5c07b;">v</span> de <span style="color: #e5c07b;">u</span>:
+      nueva_dist = dist[u] + peso(u, v)
+      <span style="color: #c678dd;">si</span> nueva_dist < dist[v]:
+        dist[v] = nueva_dist
+        previo[v] = u
+
+  <span style="color: #c678dd;">retornar</span> dist, previo
+                        </pre>
+                    </div>
+                </div>
+                <div class="col" style="flex: 0.8; display: flex; flex-direction: column; gap: 1.2rem; justify-content: center;">
+                    <div style="background: rgba(15, 23, 42, 0.7); padding: 1.2rem; border-left: 4px solid #38bdf8; border-radius: 8px;">
+                        <h4 style="color: #38bdf8; margin-bottom: 0.5rem; font-size: 1rem;">1. Preparación</h4>
+                        <p style="font-size: 0.85rem; color: #cbd5e1; margin: 0; line-height: 1.5;">Asumimos que la distancia a todo nodo es <code>∞</code>, excepto al nodo de inicio (<code>0</code>).</p>
+                    </div>
+                    <div style="background: rgba(15, 23, 42, 0.7); padding: 1.2rem; border-left: 4px solid #facc15; border-radius: 8px;">
+                        <h4 style="color: #facc15; margin-bottom: 0.5rem; font-size: 1rem;">2. Exploración</h4>
+                        <p style="font-size: 0.85rem; color: #cbd5e1; margin: 0; line-height: 1.5;">De los nodos no visitados, siempre elegimos el que tenga la menor distancia conocida.</p>
+                    </div>
+                    <div style="background: rgba(15, 23, 42, 0.7); padding: 1.2rem; border-left: 4px solid #a3e635; border-radius: 8px;">
+                        <h4 style="color: #a3e635; margin-bottom: 0.5rem; font-size: 1rem;">3. Relajación</h4>
+                        <p style="font-size: 0.85rem; color: #cbd5e1; margin: 0; line-height: 1.5;">Si descubrimos que pasar por nuestro nodo actual hacia su vecino es más barato, "relajamos" la ruta y guardamos el atajo.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="speaker-notes">"Aquí vemos la estructura formal. Dividimos el algoritmo en 3 fases clave: preparación (infinitos), exploración (buscar el más cercano) y relajación (actualizar si encontramos un atajo)."</div>
+        </div>
+
+        <!-- Slide 9: Comparación -->
+        <div class="slide">
+            <h2>Comparación de Algoritmos</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; width: 100%; max-width: 1050px; margin-top: 1.5rem;">
+                
+                <!-- Dijkstra -->
+                <div style="background: rgba(15, 23, 42, 0.6); border-radius: 12px; border: 1px solid var(--card-border); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.3); position: relative;">
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: #38bdf8;"></div>
+                    <div style="padding: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="color: #38bdf8; font-size: 1.2rem; margin: 0;">Dijkstra</h3>
+                        <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-family: monospace; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; font-weight: bold;">O((V+E) log V)</span>
+                    </div>
+                    <div style="padding: 1.2rem; flex: 1;">
+                        <p style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 1.2rem; line-height: 1.5;">El rey indiscutible para calcular la ruta más corta en redes estándar.</p>
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #94a3b8;">Uso típico:</span>
+                                <span style="color: #e2e8f0; font-weight: 500;">GPS, Redes IP</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #94a3b8;">Pesos Negativos:</span>
+                                <span style="color: #ef4444; font-weight: 500; background: rgba(239,68,68,0.1); padding: 2px 8px; border-radius: 4px;">❌ Falla</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bellman-Ford -->
+                <div style="background: rgba(15, 23, 42, 0.6); border-radius: 12px; border: 1px solid var(--card-border); overflow: hidden; display: flex; flex-direction: column; position: relative;">
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: #f59e0b;"></div>
+                    <div style="padding: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="color: #f59e0b; font-size: 1.2rem; margin: 0;">Bellman-Ford</h3>
+                        <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-family: monospace; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; font-weight: bold;">O(V·E)</span>
+                    </div>
+                    <div style="padding: 1.2rem; flex: 1;">
+                        <p style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 1.2rem; line-height: 1.5;">Más lento, pero robusto. Diseñado para manejar escenarios económicos complejos.</p>
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #94a3b8;">Uso típico:</span>
+                                <span style="color: #e2e8f0; font-weight: 500;">Finanzas, Arbitraje</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #94a3b8;">Pesos Negativos:</span>
+                                <span style="color: #22c55e; font-weight: 500; background: rgba(34,197,94,0.1); padding: 2px 8px; border-radius: 4px;">✅ Los soporta</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- A-Star -->
+                <div style="background: rgba(15, 23, 42, 0.6); border-radius: 12px; border: 1px solid var(--card-border); overflow: hidden; display: flex; flex-direction: column; position: relative;">
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: #a3e635;"></div>
+                    <div style="padding: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="color: #a3e635; font-size: 1.2rem; margin: 0;">A* (A-Star)</h3>
+                        <span style="background: rgba(163, 230, 53, 0.15); color: #a3e635; font-family: monospace; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; font-weight: bold;">O(E log V)</span>
+                    </div>
+                    <div style="padding: 1.2rem; flex: 1;">
+                        <p style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 1.2rem; line-height: 1.5;">Como Dijkstra, pero "inteligente" (usa heurística para no buscar a ciegas).</p>
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #94a3b8;">Uso típico:</span>
+                                <span style="color: #e2e8f0; font-weight: 500;">Videojuegos, IA</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #94a3b8;">Pesos Negativos:</span>
+                                <span style="color: #ef4444; font-weight: 500; background: rgba(239,68,68,0.1); padding: 2px 8px; border-radius: 4px;">❌ Falla</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floyd-Warshall -->
+                <div style="background: rgba(15, 23, 42, 0.6); border-radius: 12px; border: 1px solid var(--card-border); overflow: hidden; display: flex; flex-direction: column; position: relative;">
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: #c084fc;"></div>
+                    <div style="padding: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="color: #c084fc; font-size: 1.2rem; margin: 0;">Floyd-Warshall</h3>
+                        <span style="background: rgba(192, 132, 252, 0.15); color: #c084fc; font-family: monospace; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; font-weight: bold;">O(V³)</span>
+                    </div>
+                    <div style="padding: 1.2rem; flex: 1;">
+                        <p style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 1.2rem; line-height: 1.5;">Calcula la distancia de TODOS los nodos contra TODOS los nodos.</p>
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #94a3b8;">Uso típico:</span>
+                                <span style="color: #e2e8f0; font-weight: 500;">Análisis de Redes</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #94a3b8;">Pesos Negativos:</span>
+                                <span style="color: #22c55e; font-weight: 500; background: rgba(34,197,94,0.1); padding: 2px 8px; border-radius: 4px;">✅ Los soporta</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="speaker-notes">"Dijkstra es el rey para grafos ponderados sin negativos. Si tenemos negativos,
+                Bellman-Ford. Si buscamos todos los caminos, Floyd-Warshall. Si estamos en un videojuego buscando la
+                meta, A*."</div>
+        </div>
+
+        <!-- Slide 10: Ejemplo Paso a Paso -->
+        <div class="slide">
+            <h2>Ejemplo Paso a Paso</h2>
+            <div class="two-columns" style="align-items: stretch; max-width: 1000px; margin-top: 1rem; min-height: 420px; gap: 2rem;">
+                <div class="col" style="flex: 1.2; display: flex; flex-direction: column;">
+                    <div class="canvas-container" style="flex: 1;">
+                        <div style="flex: 1; display: flex; justify-content: center; align-items: center; padding: 1rem;">
+                            <canvas id="stepCanvas" width="400" height="280" style="max-width: 100%;"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col" style="flex: 1; display: flex; flex-direction: column; gap: 1rem;">
+                    
+                    <div id="stepExplanationCard" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); padding: 1.8rem; border-radius: 12px; flex: 1; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                        <h3 id="stepTitle" style="color: var(--accent-color); font-size: 1.2rem; margin-bottom: 0.5rem;">Paso 0: Preparación</h3>
+                        <p id="stepDescription" style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.4; min-height: 60px;">Iniciamos en el nodo origen (A). Las distancias a todos los demás nodos se establecen como infinito (∞) porque aún no las conocemos.</p>
+                        
+                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 0.95rem;">
+                            <div style="display: flex; justify-content: space-between; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+                                <span>Nodo</span><span>Distancia Mínima</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 4px;"><span>A (Inicio)</span><span id="distA" style="color: #38bdf8; font-weight: bold;">0</span></div>
+                            <div style="display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 4px;"><span>B</span><span id="distB">∞</span></div>
+                            <div style="display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 4px;"><span>C</span><span id="distC">∞</span></div>
+                            <div style="display: flex; justify-content: space-between; color: #cbd5e1;"><span>D (Meta)</span><span id="distD">∞</span></div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem; padding-bottom: 0.5rem;">
+                        <button id="btnPrevStep" class="type-btn" style="flex: 1; justify-content: center; background: rgba(30,41,59,0.8);" disabled>
+                            <span style="text-align: center; width: 100%;">← Anterior</span>
+                        </button>
+                        <button id="btnNextStep" class="type-btn active" style="flex: 1; justify-content: center; background: linear-gradient(135deg, rgba(14, 165, 233, 0.8), rgba(2, 132, 199, 0.8));">
+                            <span style="text-align: center; width: 100%;">Siguiente →</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+            <div class="speaker-notes">"Vemos que podemos ir a B (costo 2) o a C (costo 1). Tomamos C porque es más
+                barato. Desde C llegamos a D con 1+3=4."</div>
+        </div>
+
+        <!-- Slide 11: Demo Interactiva -->
+        <div class="slide">
+            <h2>Demostración Interactiva</h2>
+            <div class="two-columns" style="max-width: 1000px; gap: 2.5rem; margin-top: 1rem;">
+                <div class="col" style="flex: 0.9;">
+                    <div style="background: rgba(15, 23, 42, 0.7); padding: 2rem; border-radius: 16px; border: 1px solid var(--card-border); box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+                        <div style="margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem;">
+                            <h3 style="color: var(--accent-color); font-size: 1.2rem; margin-bottom: 0.5rem;">Panel de Control</h3>
+                            <p style="font-size: 0.9rem; color: #94a3b8;">Configura el origen y destino para ejecutar Dijkstra.</p>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">📍 Punto de Origen</label>
+                                <select id="startNode" style="width: 100%; background: #0f172a; color: white; border: 1px solid #334155; padding: 12px; border-radius: 8px; font-size: 0.95rem; cursor: pointer; transition: border-color 0.3s;">
+                                    <option value="A">Nodo A (Inicio predeterminado)</option>
+                                    <option value="B">Nodo B</option>
+                                    <option value="C">Nodo C</option>
+                                    <option value="D">Nodo D</option>
+                                    <option value="E">Nodo E</option>
+                                </select>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <label style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">🎯 Punto de Destino</label>
+                                <select id="endNode" style="width: 100%; background: #0f172a; color: white; border: 1px solid #334155; padding: 12px; border-radius: 8px; font-size: 0.95rem; cursor: pointer; transition: border-color 0.3s;">
+                                    <option value="A">Nodo A</option>
+                                    <option value="B">Nodo B</option>
+                                    <option value="C">Nodo C</option>
+                                    <option value="D">Nodo D</option>
+                                    <option value="E" selected>Nodo E (Final predeterminado)</option>
+                                </select>
+                            </div>
+
+                            <button id="calculateBtn" class="type-btn active" style="justify-content: center; margin-top: 0.5rem; height: 50px; font-weight: bold; background: linear-gradient(135deg, #0ea5e9, #2563eb); border: none;">
+                                <span>⚡ Calcular Mejor Ruta</span>
+                            </button>
+
+                            <div id="demoResult" style="margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 4px solid #38bdf8; display: none;">
+                                <span id="demoResultText" style="font-size: 0.9rem; color: #38bdf8; font-weight: 600;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col" style="flex: 1.1;">
+                    <div class="canvas-container" style="height: 100%; min-height: 320px;">
+                        <div style="flex: 1; display: flex; justify-content: center; align-items: center; padding: 1.5rem;">
+                            <canvas id="graphCanvas" width="500" height="300" style="max-width: 100%;"></canvas>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.4); padding: 0.8rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); border-radius: 0 0 16px 16px; display: flex; gap: 1.5rem; justify-content: center;">
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #94a3b8;"><span style="width: 10px; height: 10px; background: #22c55e; border-radius: 50%;"></span> Inicio</div>
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #94a3b8;"><span style="width: 10px; height: 10px; background: #ef4444; border-radius: 50%;"></span> Destino</div>
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #94a3b8;"><span style="width: 10px; height: 10px; background: #eab308; border-radius: 2px;"></span> Ruta Óptima</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="speaker-notes">"En esta demo podemos ver cómo el algoritmo se adapta a diferentes orígenes y destinos, resaltando la ruta óptima calculada matemáticamente."</div>
+        </div>
+
+        <!-- Slide 11: Aplicaciones Reales -->
+        <div class="slide">
+            <h2>Aplicaciones Reales</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aplicación</th>
+                            <th>Uso</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Sistemas de Navegación (GPS)</strong></td>
+                            <td>Cálculo de la ruta más rápida entre dos coordenadas físicas.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Enrutamiento de Redes</strong></td>
+                            <td>Protocolos como OSPF para enviar paquetes por la ruta de menor latencia.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Logística y Distribución</strong></td>
+                            <td>Optimización de flotas de transporte y cadenas de suministro.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Inteligencia Artificial (Juegos)</strong></td>
+                            <td>Pathfinding para personajes no jugables (NPCs) en mapas complejos.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Ingeniería de Tráfico</strong></td>
+                            <td>Desvío de vehículos en tiempo real según congestiones viales.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Análisis de Redes Sociales</strong></td>
+                            <td>Identificación de grados de separación y conexiones más fuertes.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="speaker-notes">"Este algoritmo no es solo teoría. Está en todas partes: GPS, protocolos de
+                enrutamiento de red como OSPF, logística, IA en juegos."</div>
+        </div>
+
+        <!-- Slide 12: Conclusión -->
+        <div class="slide">
+            <h2>Conclusión</h2>
+            <ul>
+                <li>Un <strong>grafo</strong> modela conexiones entre puntos con costos.</li>
+                <li>El problema de <strong>la ruta más corta</strong> es encontrar el camino de menor costo acumulado.
+                </li>
+                <li>El <strong>algoritmo de Dijkstra</strong> resuelve este problema de forma determinista y eficiente
+                    en <code>O((V+E) log V)</code> para pesos no negativos.</li>
+                <li>Su aplicación abarca disciplinas desde la <strong>telecomunicación</strong> hasta el
+                    <strong>transporte logístico</strong>.</li>
+                <li>Comprender sus fundamentos es esencial para el diseño de sistemas escalables en Ciencias de la
+                    Computación.</li>
+            </ul>
+            <div class="speaker-notes">"Para cerrar: los grafos son una herramienta poderosa. Dijkstra nos da una
+                solución elegante y probada matemáticamente."</div>
+        </div>
+
+        <!-- Slide 13: Preguntas -->
+        <div class="slide">
+            <h2>Fin de la Presentación</h2>
+
+            <div
+                style="background: rgba(15, 23, 42, 0.6); padding: 2.5rem; border-radius: 12px; border: 1px solid var(--card-border); margin: 2rem 0; width: 100%; max-width: 600px; text-align: center;">
+                <h3 style="color: #38bdf8; margin-bottom: 1rem; font-size: 1.5rem;">Espacio para Preguntas</h3>
+                <p style="color: #cbd5e1; line-height: 1.6;">Quedamos a su disposición para aclarar cualquier duda sobre
+                    la implementación técnica, la complejidad algorítmica o los fundamentos teóricos expuestos.</p>
+            </div>
+
+            <p style="margin-top: 1rem; color: #94a3b8; font-size: 1.1rem; font-weight: 500;">Paola Carballo, Mario
+                Noubleau, Rodrigo Joyar, Gabriel Breucop, Josué López</p>
+        </div>
+
+        <!-- Slide 14: Actividad -->
+        <div class="slide">
+            <h2>¡Es hora de ponerlo en práctica!</h2>
+            
+            <div style="background: rgba(15, 23, 42, 0.6); padding: 3rem; border-radius: 16px; border: 1px solid var(--card-border); text-align: center; max-width: 700px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);">
+                <div style="font-size: 4rem; margin-bottom: 1.5rem;">🎮</div>
+                <h3 style="color: #38bdf8; font-size: 2rem; margin-bottom: 1rem;">Graph Explorer Game</h3>
+                <p style="color: #cbd5e1; margin-bottom: 2.5rem; line-height: 1.6; font-size: 1.1rem;">
+                    Hemos preparado una simulación interactiva donde podrás construir tus propios grafos y encontrar rutas en tiempo real.
+                </p>
+                
+                <a href="juego_grafos.html" style="display: inline-block; background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); color: white; text-decoration: none; padding: 1.2rem 3rem; border-radius: 12px; font-weight: 700; font-size: 1.3rem; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(56, 189, 248, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(56, 189, 248, 0.4)';">
+                    Iniciar Juego Interactivo
+                </a>
+            </div>
+
+            <div class="speaker-notes">"Y para finalizar, los invitamos a probar sus conocimientos con nuestra aplicación 'Graph Explorer'. ¡Muchas gracias por su atención!"</div>
+        </div>
+
+    </div>
+
+    <!-- Controles Flotantes Superiores -->
+    <div id="top-slide-counter"
+        style="position: absolute; top: 25px; right: 30px; font-size: 1rem; color: #cbd5e1; font-weight: 600; z-index: 100; background: rgba(15, 23, 42, 0.7); padding: 8px 15px; border-radius: 20px; border: 1px solid var(--card-border); backdrop-filter: blur(5px);">
+        1 / 14
+    </div>
+
+    <button id="fullscreenBtn" title="Pantalla Completa"
+        style="position: absolute; top: 25px; left: 30px; z-index: 100; background: rgba(15, 23, 42, 0.7); border: 1px solid var(--card-border); color: #cbd5e1; padding: 8px 12px; border-radius: 8px; cursor: pointer; backdrop-filter: blur(5px); font-size: 1.2rem;">⛶</button>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button id="prevBtn" title="Anterior">◀</button>
+        <span id="slide-counter" style="color: #94a3b8; font-weight: 600; display: flex; align-items: center;">1 /
+            14</span>
+        <button id="nextBtn" title="Siguiente">▶</button>
+    </div>
+
+    <div class="progress-bar" id="progressBar" style="width: 9.09%;"></div>
+
+    <script>
+        // Presentation Logic
+        const slides = document.querySelectorAll('.slide');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const counter = document.getElementById('slide-counter');
+        const topCounter = document.getElementById('top-slide-counter');
+        const progressBar = document.getElementById('progressBar');
+        const container = document.getElementById('presentation-container');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        let currentSlide = 0;
+
+        function updateSlides() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                }
+            });
+            const counterText = `${currentSlide + 1} / ${slides.length}`;
+            counter.textContent = counterText;
+            topCounter.textContent = counterText;
+            progressBar.style.width = `${((currentSlide + 1) / slides.length) * 100}%`;
+
+            // Redraw canvases when slide becomes active
+            if (currentSlide === 2) drawSlide3();
+            if (currentSlide === 3) drawSlide4();
+            if (currentSlide === 4) drawSlide5();
+            if (currentSlide === 9) drawStepCanvas(currentStepAnim);
+            if (currentSlide === 10) drawGraph();
+        }
+
+        function triggerShake() {
+            container.classList.remove('shake-animation');
+            void container.offsetWidth; // trigger reflow
+            container.classList.add('shake-animation');
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlides();
+            } else {
+                triggerShake();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlides();
+            } else {
+                triggerShake();
+            }
+        }
+
+        prevBtn.addEventListener('click', prevSlide);
+        nextBtn.addEventListener('click', nextSlide);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Touch Swipe Support
+        let touchstartX = 0;
+        let touchendX = 0;
+        const SWIPE_THRESHOLD = 50;
+
+        document.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, false);
+
+        document.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, false);
+
+        function handleSwipe() {
+            if (touchendX < touchstartX - SWIPE_THRESHOLD) {
+                nextSlide();
+            }
+            if (touchendX > touchstartX + SWIPE_THRESHOLD) {
+                prevSlide();
+            }
+        }
+
+        // Fullscreen Mode
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenBtn.textContent = "✖";
+                fullscreenBtn.title = "Salir de Pantalla Completa";
+            } else {
+                fullscreenBtn.textContent = "⛶";
+                fullscreenBtn.title = "Pantalla Completa";
+            }
+        });
+
+        // Draw Slide 3 Canvas
+        const slide3Canvas = document.getElementById('slide3Canvas');
+        const ctx3 = slide3Canvas ? slide3Canvas.getContext('2d') : null;
+        const pos3 = {
+            A: { x: 50, y: 70 },
+            B: { x: 300, y: 70 },
+            C: { x: 50, y: 180 },
+            D: { x: 300, y: 180 }
+        };
+        const edges3 = [
+            { from: 'A', to: 'B', weight: 4 },
+            { from: 'A', to: 'C', weight: 2 },
+            { from: 'B', to: 'D', weight: 3 },
+            { from: 'C', to: 'D', weight: 1 }
+        ];
+
+        let highlightSlide3 = 'none'; // 'nodos', 'aristas', 'pesos', 'none'
+
+        function drawSlide3() {
+            if (!ctx3) return;
+            ctx3.clearRect(0, 0, slide3Canvas.width, slide3Canvas.height);
+            
+            // Draw edges
+            ctx3.lineWidth = 3;
+            ctx3.font = 'bold 14px Inter';
+            ctx3.textAlign = 'center';
+            ctx3.textBaseline = 'middle';
+
+            edges3.forEach(edge => {
+                const p1 = pos3[edge.from];
+                const p2 = pos3[edge.to];
+                
+                // Set styles based on highlight mode
+                if (highlightSlide3 === 'aristas') {
+                    ctx3.strokeStyle = '#a3e635'; // highlight aristas
+                } else if (highlightSlide3 === 'none' || highlightSlide3 === 'pesos' || highlightSlide3 === 'nodos') {
+                    ctx3.strokeStyle = (highlightSlide3 === 'nodos' || highlightSlide3 === 'pesos') ? 'rgba(71, 85, 105, 0.3)' : '#475569';
+                }
+
+                ctx3.beginPath();
+                ctx3.moveTo(p1.x, p1.y);
+                ctx3.lineTo(p2.x, p2.y);
+                ctx3.stroke();
+
+                // Draw weights
+                const mx = (p1.x + p2.x) / 2;
+                const my = (p1.y + p2.y) / 2;
+
+                ctx3.fillStyle = (highlightSlide3 === 'pesos') ? '#facc15' : '#1e293b';
+                ctx3.beginPath();
+                if(highlightSlide3 === 'pesos') {
+                    ctx3.arc(mx, my, 16, 0, Math.PI * 2);
+                } else {
+                    ctx3.arc(mx, my, 12, 0, Math.PI * 2);
+                }
+                ctx3.fill();
+
+                ctx3.fillStyle = (highlightSlide3 === 'pesos') ? '#0f172a' : '#fde68a';
+                if (highlightSlide3 === 'pesos') {
+                    ctx3.font = 'bold 16px Inter';
+                } else {
+                    ctx3.font = 'bold 14px Inter';
+                }
+                // hide weight if focusing on nodes or aristas
+                if (highlightSlide3 !== 'nodos' && highlightSlide3 !== 'aristas') {
+                    ctx3.fillText(edge.weight, mx, my);
+                }
+            });
+
+            // Draw nodes
+            Object.entries(pos3).forEach(([node, pos]) => {
+                ctx3.beginPath();
+                const radius = (highlightSlide3 === 'nodos') ? 24 : 20;
+                ctx3.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+                ctx3.fillStyle = '#1e293b';
+                ctx3.fill();
+                
+                if (highlightSlide3 === 'nodos') {
+                    ctx3.strokeStyle = '#38bdf8';
+                    ctx3.lineWidth = 4;
+                } else {
+                    ctx3.strokeStyle = (highlightSlide3 === 'none') ? '#38bdf8' : 'rgba(56, 189, 248, 0.3)';
+                    ctx3.lineWidth = 2;
+                }
+                ctx3.stroke();
+
+                ctx3.fillStyle = (highlightSlide3 === 'none' || highlightSlide3 === 'nodos') ? '#ffffff' : 'rgba(255,255,255,0.3)';
+                ctx3.font = (highlightSlide3 === 'nodos') ? 'bold 18px Inter' : 'bold 14px Inter';
+                ctx3.fillText(node, pos.x, pos.y);
+            });
+        }
+
+        // Add event listeners for interactivity
+        const slide3Caption = document.getElementById('slide3Caption');
+        const interactibles = {
+            'card-nodos': { mode: 'nodos', caption: 'Vértices A, B, C y D resaltados', color: 'rgba(56, 189, 248, 0.2)' },
+            'card-aristas': { mode: 'aristas', caption: 'Conexiones entre vértices resaltadas', color: 'rgba(163, 230, 53, 0.2)' },
+            'card-pesos': { mode: 'pesos', caption: 'Costos de los caminos resaltados', color: 'rgba(250, 204, 21, 0.2)' }
+        };
+
+        Object.keys(interactibles).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('mouseenter', () => {
+                    highlightSlide3 = interactibles[id].mode;
+                    el.style.backgroundColor = interactibles[id].color;
+                    el.style.transform = 'translateY(-2px)';
+                    if (slide3Caption) slide3Caption.textContent = interactibles[id].caption;
+                    drawSlide3();
+                });
+                el.addEventListener('mouseleave', () => {
+                    highlightSlide3 = 'none';
+                    el.style.backgroundColor = 'rgba(15, 23, 42, 0.6)';
+                    el.style.transform = 'translateY(0)';
+                    if (slide3Caption) slide3Caption.textContent = 'Pasa el ratón sobre las tarjetas para interactuar';
+                    drawSlide3();
+                });
+            }
+        });
+
+        // Draw Slide 4 Canvas
+        const slide4Canvas = document.getElementById('slide4Canvas');
+        const ctx4 = slide4Canvas ? slide4Canvas.getContext('2d') : null;
+        const pos4 = {
+            A: { x: 50, y: 150 },
+            B: { x: 250, y: 150 },
+            C: { x: 100, y: 60 },
+            D: { x: 200, y: 60 }
+        };
+        const edges4 = [
+            { from: 'A', to: 'B', weight: 10 },
+            { from: 'A', to: 'C', weight: 2 },
+            { from: 'C', to: 'D', weight: 3 },
+            { from: 'D', to: 'B', weight: 1 }
+        ];
+
+        let activeRoute4 = null;
+
+        function drawSlide4() {
+            if (!ctx4) return;
+            ctx4.clearRect(0, 0, slide4Canvas.width, slide4Canvas.height);
+            
+            ctx4.lineWidth = 2;
+            ctx4.font = 'bold 14px Inter';
+            ctx4.textAlign = 'center';
+            ctx4.textBaseline = 'middle';
+
+            // Draw edges
+            edges4.forEach(edge => {
+                const p1 = pos4[edge.from];
+                const p2 = pos4[edge.to];
+                
+                let isHighlighted = false;
+                if (activeRoute4 === 'route1' && edge.from === 'A' && edge.to === 'B') isHighlighted = true;
+                if (activeRoute4 === 'route2' && edge.from !== 'A' && edge.to !== 'B') {
+                    if ((edge.from === 'A' && edge.to === 'C') || 
+                        (edge.from === 'C' && edge.to === 'D') || 
+                        (edge.from === 'D' && edge.to === 'B')) {
+                        isHighlighted = true;
+                    }
+                }
+                
+                ctx4.strokeStyle = isHighlighted ? (activeRoute4 === 'route1' ? '#ef4444' : '#10b981') : '#475569';
+                ctx4.lineWidth = isHighlighted ? 4 : 2;
+
+                ctx4.beginPath();
+                ctx4.moveTo(p1.x, p1.y);
+                ctx4.lineTo(p2.x, p2.y);
+                ctx4.stroke();
+
+                // Draw arrows
+                const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                const radius = 22;
+                const ax = p2.x - radius * Math.cos(angle);
+                const ay = p2.y - radius * Math.sin(angle);
+                const size = 8;
+                
+                ctx4.fillStyle = ctx4.strokeStyle;
+                ctx4.beginPath();
+                ctx4.moveTo(ax, ay);
+                ctx4.lineTo(ax - size * Math.cos(angle - Math.PI / 6), ay - size * Math.sin(angle - Math.PI / 6));
+                ctx4.lineTo(ax - size * Math.cos(angle + Math.PI / 6), ay - size * Math.sin(angle + Math.PI / 6));
+                ctx4.closePath();
+                ctx4.fill();
+                
+                // Draw weight
+                const mx = (p1.x + p2.x) / 2;
+                const my = (p1.y + p2.y) / 2;
+
+                ctx4.fillStyle = isHighlighted ? (activeRoute4 === 'route1' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)') : '#1e293b';
+                ctx4.beginPath();
+                ctx4.arc(mx, my - 12, 12, 0, Math.PI * 2);
+                ctx4.fill();
+
+                ctx4.fillStyle = isHighlighted ? (activeRoute4 === 'route1' ? '#fca5a5' : '#6ee7b7') : '#94a3b8';
+                ctx4.fillText(edge.weight, mx, my - 12);
+            });
+
+            // Draw nodes
+            Object.entries(pos4).forEach(([node, pos]) => {
+                let isHighlighted = false;
+                if (activeRoute4 === 'route1' && (node === 'A' || node === 'B')) isHighlighted = true;
+                if (activeRoute4 === 'route2') isHighlighted = true;
+
+                ctx4.beginPath();
+                ctx4.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
+                ctx4.fillStyle = isHighlighted ? (activeRoute4 === 'route1' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)') : '#1e293b';
+                ctx4.fill();
+                ctx4.strokeStyle = isHighlighted ? (activeRoute4 === 'route1' ? '#ef4444' : '#10b981') : '#38bdf8';
+                ctx4.lineWidth = 2;
+                ctx4.stroke();
+
+                ctx4.fillStyle = '#ffffff';
+                ctx4.fillText(node, pos.x, pos.y);
+            });
+        }
+
+        const btnRoute1 = document.getElementById('btnRoute1');
+        const btnRoute2 = document.getElementById('btnRoute2');
+        
+        if(btnRoute1) {
+            btnRoute1.addEventListener('click', () => {
+                activeRoute4 = 'route1';
+                drawSlide4();
+                document.getElementById('slide4Result').style.opacity = '0';
+                btnRoute1.style.borderColor = '#ef4444';
+                btnRoute1.style.background = 'rgba(239, 68, 68, 0.1)';
+                btnRoute2.style.borderColor = 'var(--card-border)';
+                btnRoute2.style.background = 'rgba(15, 23, 42, 0.8)';
+            });
+        }
+        
+        if(btnRoute2) {
+            btnRoute2.addEventListener('click', () => {
+                activeRoute4 = 'route2';
+                drawSlide4();
+                document.getElementById('slide4Result').style.opacity = '1';
+                btnRoute2.style.borderColor = '#10b981';
+                btnRoute2.style.background = 'rgba(16, 185, 129, 0.1)';
+                btnRoute1.style.borderColor = 'var(--card-border)';
+                btnRoute1.style.background = 'rgba(15, 23, 42, 0.8)';
+            });
+        }
+
+        // Draw Slide 5 Canvas
+        const slide5Canvas = document.getElementById('slide5Canvas');
+        const ctx5 = slide5Canvas ? slide5Canvas.getContext('2d') : null;
+        const pos5 = {
+            A: { x: 120, y: 140 },
+            B: { x: 200, y: 60 },
+            C: { x: 280, y: 140 }
+        };
+
+        const typeData = {
+            nodir: {
+                title: "Conexiones bidireccionales",
+                desc: "Si el Nodo A está conectado con el B, automáticamente B está conectado con A.",
+                ex: "💡 Ej: Redes sociales (amistad mutua), cables de red."
+            },
+            dir: {
+                title: "Sentido estricto",
+                desc: "Las conexiones tienen dirección. Ir de A hacia B no implica poder regresar de B hacia A.",
+                ex: "💡 Ej: Calles de sentido único, seguidores de Twitter."
+            },
+            pond: {
+                title: "Costo o peso asignado",
+                desc: "Cada arista tiene un valor específico. Puede representar distancia, tiempo o gasto.",
+                ex: "💡 Ej: Carreteras con distancias (km) o tiempos de viaje."
+            },
+            nopond: {
+                title: "Todas valen lo mismo",
+                desc: "Todas las conexiones son idénticas. Se asume que cualquier movimiento cuesta 1 unidad.",
+                ex: "💡 Ej: Saltos de routers, celdas de un tablero de ajedrez."
+            }
+        };
+
+        let currentGraphType = 'nodir';
+
+        function drawSlide5() {
+            if (!ctx5) return;
+            ctx5.clearRect(0, 0, slide5Canvas.width, slide5Canvas.height);
+            
+            ctx5.lineWidth = 3;
+            ctx5.font = 'bold 14px Inter';
+            ctx5.textAlign = 'center';
+            ctx5.textBaseline = 'middle';
+
+            const showArrows = (currentGraphType === 'dir');
+            const showWeights = (currentGraphType === 'pond');
+            const isUnweighted = (currentGraphType === 'nopond');
+
+            const edges5 = [
+                { from: 'A', to: 'B', weight: 5 },
+                { from: 'B', to: 'C', weight: 8 },
+                { from: 'C', to: 'A', weight: 3 }
+            ];
+
+            edges5.forEach(edge => {
+                const p1 = pos5[edge.from];
+                const p2 = pos5[edge.to];
+                
+                ctx5.strokeStyle = isUnweighted ? '#94a3b8' : '#38bdf8';
+                
+                ctx5.beginPath();
+                ctx5.moveTo(p1.x, p1.y);
+                ctx5.lineTo(p2.x, p2.y);
+                ctx5.stroke();
+
+                if (showArrows) {
+                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                    const radius = 22;
+                    const ax = p2.x - radius * Math.cos(angle);
+                    const ay = p2.y - radius * Math.sin(angle);
+                    const size = 10;
+                    
+                    ctx5.fillStyle = ctx5.strokeStyle;
+                    ctx5.beginPath();
+                    ctx5.moveTo(ax, ay);
+                    ctx5.lineTo(ax - size * Math.cos(angle - Math.PI / 6), ay - size * Math.sin(angle - Math.PI / 6));
+                    ctx5.lineTo(ax - size * Math.cos(angle + Math.PI / 6), ay - size * Math.sin(angle + Math.PI / 6));
+                    ctx5.closePath();
+                    ctx5.fill();
+                }
+
+                if (showWeights || isUnweighted) {
+                    const mx = (p1.x + p2.x) / 2;
+                    const my = (p1.y + p2.y) / 2;
+                    
+                    ctx5.fillStyle = '#1e293b';
+                    ctx5.beginPath();
+                    ctx5.arc(mx, my, 14, 0, Math.PI * 2);
+                    ctx5.fill();
+                    
+                    if (showWeights) {
+                        ctx5.fillStyle = '#fde68a';
+                        ctx5.fillText(edge.weight, mx, my);
+                    } else if (isUnweighted) {
+                        ctx5.fillStyle = '#cbd5e1';
+                        ctx5.fillText('1', mx, my);
+                    }
+                }
+            });
+
+            // Draw nodes
+            Object.entries(pos5).forEach(([node, pos]) => {
+                ctx5.beginPath();
+                ctx5.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
+                ctx5.fillStyle = '#1e293b';
+                ctx5.fill();
+                ctx5.strokeStyle = isUnweighted ? '#94a3b8' : '#38bdf8';
+                ctx5.lineWidth = 2;
+                ctx5.stroke();
+
+                ctx5.fillStyle = '#ffffff';
+                ctx5.fillText(node, pos.x, pos.y);
+            });
+        }
+
+        function setGraphType(type) {
+            currentGraphType = type;
+            drawSlide5();
+            
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            const idMap = { nodir: 'btnTypeNoDir', dir: 'btnTypeDir', pond: 'btnTypePond', nopond: 'btnTypeNoPond' };
+            const activeBtnEl = document.getElementById(idMap[type]);
+            if(activeBtnEl) {
+                activeBtnEl.classList.add('active');
+            }
+            
+            const titleEl = document.getElementById('typeTitle');
+            const textEl = document.getElementById('typeText');
+            const exEl = document.getElementById('typeEx');
+            
+            if(titleEl && textEl && exEl) {
+                titleEl.textContent = typeData[type].title;
+                textEl.textContent = typeData[type].desc;
+                exEl.innerHTML = `💡 ${typeData[type].ex}`;
+            }
+        }
+
+        ['nodir', 'dir', 'pond', 'nopond'].forEach(type => {
+            const idMap = { nodir: 'btnTypeNoDir', dir: 'btnTypeDir', pond: 'btnTypePond', nopond: 'btnTypeNoPond' };
+            const btn = document.getElementById(idMap[type]);
+            if(btn) {
+                btn.addEventListener('click', () => setGraphType(type));
+            }
+        });
+
+        // Draw Step-by-Step Canvas
+        const stepCanvas = document.getElementById('stepCanvas');
+        const ctxStep = stepCanvas.getContext('2d');
+        const posStep = {
+            A: { x: 80, y: 140 },
+            B: { x: 260, y: 60 },
+            C: { x: 180, y: 220 },
+            D: { x: 320, y: 170 }
+        };
+        const edgesStep = [
+            { from: 'A', to: 'B', weight: 4 },
+            { from: 'A', to: 'C', weight: 1 },
+            { from: 'C', to: 'B', weight: 2 },
+            { from: 'C', to: 'D', weight: 5 },
+            { from: 'B', to: 'D', weight: 1 }
+        ];
+
+        let currentStepAnim = 0;
+        const maxSteps = 5;
+
+        const stepData = [
+            { // 0
+                title: "Paso 0: Preparación",
+                desc: "Iniciamos en el nodo origen (A). Las distancias a todos los demás nodos se establecen como infinito (∞).",
+                dists: { A: '0', B: '∞', C: '∞', D: '∞' },
+                highlightNodes: ['A'],
+                highlightEdges: [],
+                visited: []
+            },
+            { // 1
+                title: "Paso 1: Evaluando vecinos de A",
+                desc: "Desde A, podemos ir a B (costo 4) o a C (costo 1). Actualizamos sus distancias mínimas conocidas.",
+                dists: { A: '0', B: '4', C: '1', D: '∞' },
+                highlightNodes: ['A', 'B', 'C'],
+                highlightEdges: ['AB', 'AC'],
+                visited: ['A']
+            },
+            { // 2
+                title: "Paso 2: Seleccionamos el menor (C)",
+                desc: "C tiene la menor distancia (1). Evaluamos sus vecinos: a B (1+2=3, mejora el 4 anterior) y a D (1+5=6).",
+                dists: { A: '0', B: '3', C: '1', D: '6' },
+                highlightNodes: ['C', 'B', 'D'],
+                highlightEdges: ['CB', 'CD'],
+                visited: ['A', 'C']
+            },
+            { // 3
+                title: "Paso 3: Seleccionamos el menor (B)",
+                desc: "B tiene la menor distancia disponible (3). Evaluamos su vecino D: (3+1=4, mejora el 6 anterior).",
+                dists: { A: '0', B: '3', C: '1', D: '4' },
+                highlightNodes: ['B', 'D'],
+                highlightEdges: ['BD'],
+                visited: ['A', 'C', 'B']
+            },
+            { // 4
+                title: "Paso 4: Llegamos al destino",
+                desc: "Seleccionamos D. Como no tiene vecinos no visitados y es nuestro destino, hemos terminado.",
+                dists: { A: '0', B: '3', C: '1', D: '4' },
+                highlightNodes: ['D'],
+                highlightEdges: [],
+                visited: ['A', 'C', 'B', 'D']
+            },
+            { // 5
+                title: "¡Ruta óptima encontrada!",
+                desc: "La ruta más corta desde A hasta D tiene un costo total de 4. (A → C → B → D).",
+                dists: { A: '0', B: '3', C: '1', D: '4' },
+                highlightNodes: ['A', 'C', 'B', 'D'],
+                highlightEdges: ['AC', 'CB', 'BD'], // Final path
+                visited: ['A', 'C', 'B', 'D']
+            }
+        ];
+
+        function drawStepCanvas(stepIndex) {
+            ctxStep.clearRect(0, 0, stepCanvas.width, stepCanvas.height);
+            
+            const stepInfo = stepData[stepIndex];
+
+            ctxStep.lineWidth = 3;
+            ctxStep.font = 'bold 14px Inter';
+            ctxStep.textAlign = 'center';
+            ctxStep.textBaseline = 'middle';
+
+            // Draw edges
+            edgesStep.forEach(edge => {
+                const p1 = posStep[edge.from];
+                const p2 = posStep[edge.to];
+                const edgeId = edge.from + edge.to;
+                
+                const isFinalStep = stepIndex === maxSteps;
+                let isActive = stepInfo.highlightEdges.includes(edgeId);
+                
+                ctxStep.strokeStyle = isActive ? (isFinalStep ? '#10b981' : '#facc15') : '#334155';
+                ctxStep.lineWidth = isActive ? (isFinalStep ? 4 : 3) : 2;
+
+                ctxStep.beginPath();
+                ctxStep.moveTo(p1.x, p1.y);
+                ctxStep.lineTo(p2.x, p2.y);
+                ctxStep.stroke();
+
+                // Arrows
+                const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                const radius = 22;
+                const ax = p2.x - radius * Math.cos(angle);
+                const ay = p2.y - radius * Math.sin(angle);
+                const size = isActive ? 8 : 6;
+
+                ctxStep.fillStyle = ctxStep.strokeStyle;
+                ctxStep.beginPath();
+                ctxStep.moveTo(ax, ay);
+                ctxStep.lineTo(ax - size * Math.cos(angle - Math.PI / 6), ay - size * Math.sin(angle - Math.PI / 6));
+                ctxStep.lineTo(ax - size * Math.cos(angle + Math.PI / 6), ay - size * Math.sin(angle + Math.PI / 6));
+                ctxStep.closePath();
+                ctxStep.fill();
+
+                // Weight
+                const mx = (p1.x + p2.x) / 2;
+                const my = (p1.y + p2.y) / 2 - 12;
+
+                ctxStep.fillStyle = isActive ? (isFinalStep ? '#10b981' : '#fde68a') : '#64748b';
+                ctxStep.fillText(edge.weight, mx, my);
+            });
+
+            // Draw nodes
+            Object.entries(posStep).forEach(([node, pos]) => {
+                const isVisited = stepInfo.visited.includes(node);
+                const isHighlighted = stepInfo.highlightNodes.includes(node);
+                const isFinalStep = stepIndex === maxSteps;
+
+                ctxStep.beginPath();
+                ctxStep.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
+                
+                if (isFinalStep && isHighlighted) {
+                    ctxStep.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                    ctxStep.strokeStyle = '#10b981';
+                } else if (isHighlighted) {
+                    ctxStep.fillStyle = 'rgba(250, 204, 21, 0.2)';
+                    ctxStep.strokeStyle = '#facc15';
+                } else if (isVisited) {
+                    ctxStep.fillStyle = 'rgba(14, 165, 233, 0.2)';
+                    ctxStep.strokeStyle = '#38bdf8';
+                } else {
+                    ctxStep.fillStyle = '#1e293b';
+                    ctxStep.strokeStyle = '#475569';
+                }
+                
+                ctxStep.fill();
+                ctxStep.lineWidth = isHighlighted || isVisited ? 2 : 1;
+                ctxStep.stroke();
+
+                ctxStep.fillStyle = '#ffffff';
+                ctxStep.fillText(node, pos.x, pos.y);
+            });
+            
+            // Update UI text
+            const titleEl = document.getElementById('stepTitle');
+            const descEl = document.getElementById('stepDescription');
+            if(titleEl) titleEl.textContent = stepInfo.title;
+            if(descEl) descEl.textContent = stepInfo.desc;
+            
+            ['A', 'B', 'C', 'D'].forEach(n => {
+                const distEl = document.getElementById('dist'+n);
+                if(distEl) {
+                    distEl.textContent = stepInfo.dists[n];
+                    distEl.style.color = (stepInfo.dists[n] !== '∞') ? (stepIndex === maxSteps ? '#10b981' : '#38bdf8') : '#cbd5e1';
+                }
+            });
+            
+            // Update buttons
+            const btnPrev = document.getElementById('btnPrevStep');
+            const btnNext = document.getElementById('btnNextStep');
+            
+            if(btnPrev) {
+                btnPrev.disabled = (stepIndex === 0);
+                btnPrev.style.opacity = (stepIndex === 0) ? '0.5' : '1';
+                btnPrev.style.cursor = (stepIndex === 0) ? 'not-allowed' : 'pointer';
+            }
+            if(btnNext) {
+                if (stepIndex === maxSteps) {
+                    btnNext.querySelector('span').textContent = 'Reiniciar ↺';
+                } else {
+                    btnNext.querySelector('span').textContent = 'Siguiente →';
+                }
+            }
+        }
+
+        const btnPrev = document.getElementById('btnPrevStep');
+        const btnNext = document.getElementById('btnNextStep');
+
+        if(btnNext) {
+            btnNext.addEventListener('click', () => {
+                if (currentStepAnim === maxSteps) {
+                    currentStepAnim = 0;
+                } else {
+                    currentStepAnim++;
+                }
+                drawStepCanvas(currentStepAnim);
+            });
+        }
+        
+        if(btnPrev) {
+            btnPrev.addEventListener('click', () => {
+                if (currentStepAnim > 0) {
+                    currentStepAnim--;
+                    drawStepCanvas(currentStepAnim);
+                }
+            });
+        }
+
+        // Dijkstra Demo Logic
+        const graph = {
+            A: { B: 4, C: 1 },
+            B: { D: 3, E: 6 },
+            C: { B: 2, D: 8 },
+            D: { E: 2 },
+            E: {}
+        };
+
+        const positions = {
+            A: { x: 70, y: 125 },
+            B: { x: 200, y: 50 },
+            C: { x: 200, y: 200 },
+            D: { x: 350, y: 125 },
+            E: { x: 450, y: 200 }
+        };
+
+        function dijkstra(graph, start, end) {
+            const distances = {};
+            const previous = {};
+            const unvisited = new Set(Object.keys(graph));
+
+            for (let node of unvisited) {
+                distances[node] = Infinity;
+                previous[node] = null;
+            }
+            distances[start] = 0;
+
+            while (unvisited.size > 0) {
+                let current = null;
+                for (let node of unvisited) {
+                    if (current === null || distances[node] < distances[current]) {
+                        current = node;
+                    }
+                }
+
+                if (current === end) break;
+                if (distances[current] === Infinity) break;
+
+                unvisited.delete(current);
+
+                for (let [neighbor, weight] of Object.entries(graph[current])) {
+                    const newDist = distances[current] + weight;
+                    if (newDist < distances[neighbor]) {
+                        distances[neighbor] = newDist;
+                        previous[neighbor] = current;
+                    }
+                }
+            }
+
+            const path = [];
+            let step = end;
+            while (step !== null) {
+                path.unshift(step);
+                step = previous[step];
+            }
+
+            if (path[0] !== start) {
+                return { distance: Infinity, path: [] };
+            }
+
+            return { distance: distances[end], path };
+        }
+
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+
+        function drawGraph(highlightPath = []) {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const highlightEdges = new Set();
+            for (let i = 0; i < highlightPath.length - 1; i++) {
+                highlightEdges.add(highlightPath[i] + highlightPath[i + 1]);
+            }
+
+            for (let [from, neighbors] of Object.entries(graph)) {
+                for (let [to, weight] of Object.entries(neighbors)) {
+                    const isHighlighted = highlightEdges.has(from + to);
+                    const p1 = positions[from];
+                    const p2 = positions[to];
+
+                    const mx = (p1.x + p2.x) / 2;
+                    const my = (p1.y + p2.y) / 2;
+
+                    ctx.strokeStyle = isHighlighted ? '#facc15' : '#475569';
+                    ctx.lineWidth = isHighlighted ? 3 : 1.5;
+
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+
+                    // Arrow
+                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                    const radius = 20;
+                    const ax = p2.x - radius * Math.cos(angle);
+                    const ay = p2.y - radius * Math.sin(angle);
+                    const size = 6;
+
+                    ctx.fillStyle = isHighlighted ? '#facc15' : '#475569';
+                    ctx.beginPath();
+                    ctx.moveTo(ax, ay);
+                    ctx.lineTo(ax - size * Math.cos(angle - Math.PI / 6), ay - size * Math.sin(angle - Math.PI / 6));
+                    ctx.lineTo(ax - size * Math.cos(angle + Math.PI / 6), ay - size * Math.sin(angle + Math.PI / 6));
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Weight
+                    ctx.fillStyle = isHighlighted ? '#fde68a' : '#94a3b8';
+                    ctx.font = 'bold 12px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(weight, mx + 8, my - 6);
+                }
+            }
+
+            for (let [node, pos] of Object.entries(positions)) {
+                const inPath = highlightPath.includes(node);
+                const isStart = node === highlightPath[0];
+                const isEnd = node === highlightPath[highlightPath.length - 1];
+
+                let fillColor = inPath ? '#0ea5e9' : '#1e293b';
+                if (isStart) fillColor = '#22c55e';
+                if (isEnd) fillColor = '#f97316';
+
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
+                ctx.fillStyle = fillColor;
+                ctx.fill();
+                ctx.strokeStyle = inPath ? '#38bdf8' : '#334155';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 14px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node, pos.x, pos.y);
+            }
+        }
+
+        const calcBtn = document.getElementById('calculateBtn');
+        if (calcBtn) {
+            calcBtn.addEventListener('click', () => {
+                const start = document.getElementById('startNode').value;
+                const end = document.getElementById('endNode').value;
+                const resultDiv = document.getElementById('demoResult');
+                const resultText = document.getElementById('demoResultText');
+
+                resultDiv.style.display = 'block'; // Make sure the panel is visible
+
+                if (start === end) {
+                    resultText.innerHTML = '<span style="color: #fb923c;">⚠️ Selecciona nodos distintos para origen y destino.</span>';
+                    drawGraph();
+                    return;
+                }
+
+                const { distance, path } = dijkstra(graph, start, end);
+
+                if (path.length === 0 || distance === Infinity) {
+                    resultText.innerHTML = `<span style="color: #f87171;">❌ No existe ruta entre ${start} y ${end}.</span>`;
+                    drawGraph();
+                } else {
+                    resultText.innerHTML = `<span style="color: #a3e635;">✅ Ruta más corta: ${path.join(' → ')}  |  Costo: ${distance}</span>`;
+                    drawGraph(path);
+                }
+            });
+        }
+
+        // Initialize graph drawing
+        setTimeout(() => {
+            drawSlide3();
+            drawSlide4();
+            drawSlide5();
+            drawStepCanvas(0);
+            drawGraph();
+        }, 500); // Give canvas time to render properly
+
+    </script>
+</body>
+
+</html>

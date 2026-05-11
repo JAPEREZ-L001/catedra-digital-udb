@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Explorer: Reto de la Ruta Más Corta</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Fira+Code&display=swap');
+
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #e2e8f0;
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.5);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(15, 23, 42, 1), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.1), transparent 25%);
+            padding: 2rem;
+        }
+
+        /* Accessibilidad */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        .accessible-controls {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+            background: #1e293b;
+            padding: 2rem;
+            z-index: 1000;
+            border: 2px solid var(--accent-color);
+            border-radius: 12px;
+        }
+
+        .accessible-controls:focus-within {
+            top: 20px;
+            left: 20px;
+        }
+
+        .accessible-controls button {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .accessible-controls button:focus {
+            outline: 4px solid white;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            position: relative;
+        }
+
+        .header-controls {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .player-badge {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid var(--accent-color);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-box .label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-box .value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .highlight {
+            color: var(--success-color);
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        canvas {
+            cursor: crosshair;
+            display: block;
+        }
+
+        .toast-container {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--accent-color);
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transition: all 0.5s ease;
+            text-align: center;
+            width: 100%;
+            margin-top: 0.5rem;
+            min-height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+        
+        .toast-hidden {
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+            visibility: hidden;
+            height: 0;
+            min-height: 0;
+            margin-top: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            overflow: hidden;
+        }
+
+        /* Modales */
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .modal.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            padding: 2.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal.visible .modal-content {
+            transform: scale(1);
+        }
+
+        .modal h2 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+        }
+
+        .modal p {
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .modal-stats {
+            background: rgba(0,0,0,0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        .stat-row:last-child { margin-bottom: 0; }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        /* Inputs y Tablas */
+        .input-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #475569;
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .leaderboard-table th, .leaderboard-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .leaderboard-table th {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .leaderboard-table tr:hover td {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: #0f172a;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid #475569;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: #0f172a;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="aria-announcer" class="sr-only" aria-live="polite" aria-atomic="true">
+        Cargando juego...
+    </div>
+
+    <!-- MODAL DE INICIO Y REGISTRO -->
+    <div id="welcome-modal" class="modal visible">
+        <div class="modal-content">
+            <h2>Graph Explorer</h2>
+            <p>Aprende algoritmos de grafos encontrando la ruta más corta. Registra tu nombre para guardar tus puntuaciones.</p>
+            
+            <div class="input-group">
+                <label for="player-name-input">Nombre de Jugador:</label>
+                <input type="text" id="player-name-input" placeholder="Ej. Ada Lovelace" autocomplete="off" onkeydown="if(event.key === 'Enter') startGame()">
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="showLeaderboard()">🏆 Ver Récords</button>
+                <button class="btn btn-primary" onclick="startGame()">Comenzar a Jugar ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE LEADERBOARD -->
+    <div id="leaderboard-modal" class="modal">
+        <div class="modal-content">
+            <h2>Salón de la Fama</h2>
+            <p>Mejores puntuaciones registradas localmente.</p>
+            
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Jugador</th>
+                        <th>Puntos</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-tbody">
+                    <!-- Los récords se inyectan aquí -->
+                </tbody>
+            </table>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeLeaderboard()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE RESULTADO DE NIVEL -->
+    <div id="level-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">¡Nivel Completado!</h2>
+            <p id="modal-message">Has encontrado la ruta óptima.</p>
+            <div class="modal-stats">
+                <div class="stat-row">
+                    <span>Tu costo:</span> 
+                    <strong id="user-cost" style="font-family: 'Fira Code'; font-size: 1.2rem;">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Costo óptimo:</span> 
+                    <strong id="optimal-cost" style="font-family: 'Fira Code'; font-size: 1.2rem; color: var(--success-color);">0</strong>
+                </div>
+                <div class="stat-row" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                    <span>Puntos ganados:</span> 
+                    <strong id="level-points" style="font-family: 'Fira Code'; font-size: 1.2rem; color: var(--accent-color);">0</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="btn-retry" class="btn btn-secondary" onclick="retryLevel()">Reintentar</button>
+                <button id="btn-next" class="btn btn-primary" onclick="advanceLevel()">Continuar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL DEL JUEGO -->
+    <div class="container" id="game-container">
+        
+        <div class="accessible-controls" tabindex="0">
+            <h2>Navegación Accesible</h2>
+            <p id="a11y-status">Cargando estado...</p>
+            <h3>Opciones de movimiento:</h3>
+            <div id="a11y-options"></div>
+            <button onclick="undo()" id="a11y-undo" disabled>Deshacer paso</button>
+            <button onclick="loadLevel(currentLevelIndex)">Reiniciar nivel</button>
+        </div>
+
+        <header aria-hidden="true">
+            <div class="header-controls">
+                <div class="player-badge">
+                    <span>👤</span> <span id="player-display">Invitado</span>
+                </div>
+                <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.9rem;" onclick="showLeaderboard()">🏆 Récords</button>
+            </div>
+            <h1>Graph Explorer</h1>
+            <p>El Reto de la Ruta Más Corta</p>
+        </header>
+
+        <div class="game-info" aria-hidden="true">
+            <div class="stat-box">
+                <span class="label">Nivel</span>
+                <span id="level-display" class="value" style="color: #a3e635;">1</span>
+            </div>
+            <div class="stat-box">
+                <span class="label">Puntos Globales</span>
+                <span id="score-display" class="value" style="color: var(--accent-color);">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="label">Costo Actual</span>
+                <span id="cost-display" class="value">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="label">Destino</span>
+                <span id="target-display" class="value highlight">Z</span>
+            </div>
+        </div>
+
+        <div class="canvas-container" aria-hidden="true">
+            <canvas id="game-canvas" width="800" height="400"></canvas>
+        </div>
+
+        <div id="tutorial-toast" class="toast-container toast-hidden">
+            Guía del juego aquí.
+        </div>
+
+        <div class="controls" aria-hidden="true">
+            <button id="btn-undo" class="btn btn-secondary" disabled>↩ Deshacer Paso</button>
+            <button id="btn-reset" class="btn btn-secondary">⟳ Reiniciar Nivel</button>
+        </div>
+    </div>
+
+    <script>
+        const levels = [
+            {
+                id: 1,
+                title: "Calentamiento",
+                nodes: [
+                    { id: 'A', x: 150, y: 200 },
+                    { id: 'B', x: 400, y: 100 },
+                    { id: 'C', x: 400, y: 300 },
+                    { id: 'D', x: 650, y: 200 }
+                ],
+                edges: [
+                    { from: 'A', to: 'B', weight: 4 },
+                    { from: 'A', to: 'C', weight: 2 },
+                    { from: 'B', to: 'D', weight: 3 },
+                    { from: 'C', to: 'D', weight: 6 },
+                    { from: 'B', to: 'C', weight: 1 }
+                ],
+                start: 'A',
+                target: 'D'
+            },
+            {
+                id: 2,
+                title: "La Trampa",
+                nodes: [
+                    { id: 'A', x: 100, y: 200 },
+                    { id: 'B', x: 250, y: 100 },
+                    { id: 'C', x: 250, y: 300 },
+                    { id: 'D', x: 450, y: 100 },
+                    { id: 'E', x: 450, y: 300 },
+                    { id: 'F', x: 650, y: 200 },
+                    { id: 'G', x: 350, y: 200 }
+                ],
+                edges: [
+                    { from: 'A', to: 'B', weight: 5 },
+                    { from: 'A', to: 'C', weight: 2 },
+                    { from: 'B', to: 'D', weight: 2 },
+                    { from: 'C', to: 'G', weight: 1 },
+                    { from: 'G', to: 'B', weight: 1 },
+                    { from: 'C', to: 'E', weight: 8 },
+                    { from: 'D', to: 'F', weight: 3 },
+                    { from: 'E', to: 'F', weight: 1 },
+                    { from: 'D', to: 'E', weight: 2 },
+                    { from: 'G', to: 'D', weight: 6 }
+                ],
+                start: 'A',
+                target: 'F'
+            },
+            {
+                id: 3,
+                title: "Laberinto Óptimo",
+                nodes: [
+                    { id: 'S', x: 80, y: 200 },
+                    { id: 'N1', x: 200, y: 80 },
+                    { id: 'N2', x: 200, y: 320 },
+                    { id: 'N3', x: 350, y: 200 },
+                    { id: 'N4', x: 500, y: 80 },
+                    { id: 'N5', x: 500, y: 320 },
+                    { id: 'Z', x: 680, y: 200 }
+                ],
+                edges: [
+                    { from: 'S', to: 'N1', weight: 4 },
+                    { from: 'S', to: 'N2', weight: 3 },
+                    { from: 'N1', to: 'N3', weight: 2 },
+                    { from: 'N2', to: 'N3', weight: 2 },
+                    { from: 'N1', to: 'N4', weight: 5 },
+                    { from: 'N2', to: 'N5', weight: 6 },
+                    { from: 'N3', to: 'N4', weight: 1 },
+                    { from: 'N3', to: 'N5', weight: 4 },
+                    { from: 'N4', to: 'Z', weight: 3 },
+                    { from: 'N5', to: 'Z', weight: 1 },
+                    { from: 'N4', to: 'N5', weight: 1 }
+                ],
+                start: 'S',
+                target: 'Z'
+            }
+        ];
+
+        let currentLevelIndex = 0;
+        let currentPath = [];
+        let pathCosts = [];
+        let currentTotalCost = 0;
+        let optimalData = null;
+        let animationFrame;
+        let time = 0;
+        
+        // Variables de Jugador
+        let playerName = "Invitado";
+        let globalScore = 0;
+        let pendingLevelScore = 0;
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const announcer = document.getElementById('aria-announcer');
+        const toast = document.getElementById('tutorial-toast');
+        
+        const uiElements = {
+            level: document.getElementById('level-display'),
+            score: document.getElementById('score-display'),
+            cost: document.getElementById('cost-display'),
+            target: document.getElementById('target-display'),
+            levelModal: document.getElementById('level-modal'),
+            modalTitle: document.getElementById('modal-title'),
+            modalMessage: document.getElementById('modal-message'),
+            userCost: document.getElementById('user-cost'),
+            optimalCost: document.getElementById('optimal-cost'),
+            levelPoints: document.getElementById('level-points'),
+            btnUndo: document.getElementById('btn-undo'),
+            btnReset: document.getElementById('btn-reset'),
+            btnRetry: document.getElementById('btn-retry'),
+            btnNext: document.getElementById('btn-next'),
+            a11yStatus: document.getElementById('a11y-status'),
+            a11yOptions: document.getElementById('a11y-options')
+        };
+
+        // --- GESTIÓN DE USUARIO Y RECORDS ---
+
+        function startGame() {
+            const input = document.getElementById('player-name-input');
+            if (input.value.trim() !== '') {
+                playerName = input.value.trim();
+            } else {
+                playerName = "Jugador Anónimo";
+            }
+            
+            document.getElementById('player-display').textContent = playerName;
+            document.getElementById('welcome-modal').classList.remove('visible');
+            
+            globalScore = 0;
+            currentLevelIndex = 0;
+            loadLevel(currentLevelIndex);
+        }
+
+        function showLeaderboard() {
+            renderLeaderboard();
+            document.getElementById('leaderboard-modal').classList.add('visible');
+        }
+
+        function closeLeaderboard() {
+            document.getElementById('leaderboard-modal').classList.remove('visible');
+        }
+
+        function saveRecord(name, score) {
+            let records = JSON.parse(localStorage.getItem('graphExplorerRecords') || '[]');
+            records.push({ 
+                name: name, 
+                score: score, 
+                date: new Date().toLocaleDateString() 
+            });
+            // Ordenar de mayor a menor puntuación
+            records.sort((a, b) => b.score - a.score);
+            localStorage.setItem('graphExplorerRecords', JSON.stringify(records));
+        }
+
+        function renderLeaderboard() {
+            let records = JSON.parse(localStorage.getItem('graphExplorerRecords') || '[]');
+            const tbody = document.getElementById('leaderboard-tbody');
+            tbody.innerHTML = '';
+            
+            if(records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">No hay récords aún. ¡Sé el primero!</td></tr>';
+                return;
+            }
+
+            records.slice(0, 8).forEach((rec, index) => {
+                let medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td style="font-weight:600;">${medal}${rec.name}</td>
+                        <td style="color:var(--success-color); font-weight:bold; font-family:'Fira Code';">${rec.score} pts</td>
+                        <td style="color:#94a3b8; font-size:0.9rem;">${rec.date}</td>
+                    </tr>
+                `;
+            });
+        }
+
+
+        // --- LÓGICA DEL JUEGO ---
+
+        function calculateDijkstra(nodes, edges, start, target) {
+            const dist = {};
+            const prev = {};
+            const unvisited = new Set();
+            
+            nodes.forEach(n => {
+                dist[n.id] = Infinity;
+                prev[n.id] = null;
+                unvisited.add(n.id);
+            });
+            dist[start] = 0;
+            
+            while(unvisited.size > 0) {
+                let u = null;
+                let minDist = Infinity;
+                unvisited.forEach(id => {
+                    if (dist[id] < minDist) {
+                        minDist = dist[id];
+                        u = id;
+                    }
+                });
+                
+                if (u === null || u === target) break;
+                unvisited.delete(u);
+                
+                const neighbors = edges.filter(e => e.from === u || e.to === u);
+                neighbors.forEach(e => {
+                    const v = e.from === u ? e.to : e.from;
+                    if (unvisited.has(v)) {
+                        const alt = dist[u] + e.weight;
+                        if (alt < dist[v]) {
+                            dist[v] = alt;
+                            prev[v] = u;
+                        }
+                    }
+                });
+            }
+            
+            const path = [];
+            let curr = target;
+            while(curr !== null) {
+                path.unshift(curr);
+                curr = prev[curr];
+            }
+            return { cost: dist[target], path: path };
+        }
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.remove('toast-hidden');
+        }
+
+        function announce(message) {
+            announcer.textContent = message;
+        }
+
+        function getNeighbors(nodeId, level) {
+            return level.edges.filter(e => e.from === nodeId || e.to === nodeId).map(e => {
+                const isTo = e.from === nodeId;
+                return {
+                    id: isTo ? e.to : e.from,
+                    weight: e.weight
+                };
+            });
+        }
+
+        function updateAccessibility() {
+            const level = levels[currentLevelIndex];
+            const currentNodeId = currentPath[currentPath.length - 1];
+            const neighbors = getNeighbors(currentNodeId, level);
+            
+            let statusText = `Estás en el Nodo ${currentNodeId}. Tu costo actual es ${currentTotalCost}. Tu objetivo es llegar al Nodo ${level.target}.`;
+            uiElements.a11yStatus.textContent = statusText;
+            
+            uiElements.a11yOptions.innerHTML = '';
+            let optionsSpeech = "Tus opciones de movimiento son: ";
+            
+            neighbors.forEach((n, idx) => {
+                const btn = document.createElement('button');
+                btn.textContent = `Mover al Nodo ${n.id} (Costo: ${n.weight})`;
+                btn.onclick = () => processMove(n.id, n.weight);
+                uiElements.a11yOptions.appendChild(btn);
+                
+                optionsSpeech += `Nodo ${n.id} con costo ${n.weight}${idx === neighbors.length - 1 ? '.' : ', '}`;
+            });
+
+            if (currentNodeId !== level.target) {
+                announce(statusText + " " + optionsSpeech);
+            }
+        }
+
+        function loadLevel(index) {
+            if (index >= levels.length) {
+                showGameComplete();
+                return;
+            }
+            
+            const level = levels[index];
+            currentPath = [level.start];
+            pathCosts = [];
+            currentTotalCost = 0;
+            pendingLevelScore = 0;
+            
+            optimalData = calculateDijkstra(level.nodes, level.edges, level.start, level.target);
+            
+            uiElements.levelModal.classList.remove('visible');
+            updateUI();
+            
+            if(index === 0) {
+                showToast("¡Bienvenido! Haz clic en los nodos parpadeantes para avanzar hacia tu destino (Verde).");
+            } else {
+                showToast(`Nivel ${index + 1}: ${level.title}. ¡Encuentra el camino de menor costo!`);
+            }
+
+            updateAccessibility();
+            
+            if(animationFrame) cancelAnimationFrame(animationFrame);
+            animate();
+        }
+
+        function updateUI() {
+            const level = levels[currentLevelIndex];
+            uiElements.level.textContent = currentLevelIndex + 1;
+            uiElements.cost.textContent = currentTotalCost;
+            uiElements.score.textContent = globalScore;
+            uiElements.target.textContent = level.target;
+            
+            uiElements.btnUndo.disabled = currentPath.length <= 1;
+            document.getElementById('a11y-undo').disabled = currentPath.length <= 1;
+        }
+
+        function animate() {
+            time += 0.05;
+            drawGraph();
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const level = levels[currentLevelIndex];
+            const currentNodeId = currentPath[currentPath.length - 1];
+            
+            const neighbors = getNeighbors(currentNodeId, level).map(n => n.id);
+            const pulseRadius = Math.sin(time) * 4 + 26;
+
+            level.edges.forEach(edge => {
+                const fromNode = level.nodes.find(n => n.id === edge.from);
+                const toNode = level.nodes.find(n => n.id === edge.to);
+                
+                let isPath = false;
+                for (let i = 0; i < currentPath.length - 1; i++) {
+                    if ((currentPath[i] === edge.from && currentPath[i+1] === edge.to) ||
+                        (currentPath[i] === edge.to && currentPath[i+1] === edge.from)) {
+                        isPath = true;
+                        break;
+                    }
+                }
+                
+                ctx.beginPath();
+                ctx.moveTo(fromNode.x, fromNode.y);
+                ctx.lineTo(toNode.x, toNode.y);
+                ctx.lineWidth = isPath ? 5 : 2;
+                ctx.strokeStyle = isPath ? '#38bdf8' : 'rgba(255,255,255,0.1)';
+                ctx.stroke();
+                
+                const midX = (fromNode.x + toNode.x) / 2;
+                const midY = (fromNode.y + toNode.y) / 2;
+                
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.arc(midX, midY, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = isPath ? '#38bdf8' : '#475569';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                ctx.fillStyle = isPath ? '#fff' : '#94a3b8';
+                ctx.font = 'bold 14px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(edge.weight, midX, midY);
+            });
+            
+            level.nodes.forEach(node => {
+                const isStart = node.id === level.start;
+                const isTarget = node.id === level.target;
+                const isCurrent = node.id === currentNodeId;
+                const isInPath = currentPath.includes(node.id);
+                const isNeighbor = !isCurrent && neighbors.includes(node.id);
+                
+                ctx.beginPath();
+                
+                if (isNeighbor && currentNodeId !== level.target) {
+                    ctx.arc(node.x, node.y, pulseRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+                    ctx.fill();
+                }
+
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 22, 0, Math.PI * 2);
+                
+                if (isCurrent) {
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.shadowColor = '#38bdf8';
+                    ctx.shadowBlur = 15;
+                } else if (isTarget) {
+                    ctx.fillStyle = '#10b981';
+                    ctx.shadowColor = '#10b981';
+                    ctx.shadowBlur = 15;
+                } else if (isInPath) {
+                    ctx.fillStyle = '#0284c7';
+                    ctx.shadowBlur = 0;
+                } else if (isNeighbor) {
+                    ctx.fillStyle = '#1e293b';
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    ctx.shadowColor = '#38bdf8';
+                    ctx.shadowBlur = 10;
+                } else {
+                    ctx.fillStyle = '#1e293b';
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.fill();
+                if(!isNeighbor || isCurrent || isInPath || isTarget) {
+                    ctx.strokeStyle = '#475569';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                
+                ctx.fillStyle = (isCurrent || isTarget) ? '#0f172a' : '#fff';
+                ctx.font = 'bold 16px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.id, node.x, node.y);
+                ctx.shadowBlur = 0; 
+            });
+        }
+
+        function processMove(targetNodeId, weight) {
+            const level = levels[currentLevelIndex];
+            
+            currentPath.push(targetNodeId);
+            pathCosts.push(weight);
+            currentTotalCost += weight;
+            
+            updateUI();
+            
+            if (targetNodeId === level.target) {
+                checkWinCondition();
+            } else {
+                updateAccessibility();
+                showToast(`Te moviste al Nodo ${targetNodeId}. Costo acumulado: ${currentTotalCost}. Selecciona el siguiente paso.`);
+            }
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            const level = levels[currentLevelIndex];
+            const currentNodeId = currentPath[currentPath.length - 1];
+            
+            if (currentNodeId === level.target) return;
+            
+            let clickedNode = null;
+            level.nodes.forEach(n => {
+                const dist = Math.sqrt(Math.pow(n.x - x, 2) + Math.pow(n.y - y, 2));
+                if (dist <= 30) {
+                    clickedNode = n;
+                }
+            });
+            
+            if (clickedNode) {
+                const neighbors = getNeighbors(currentNodeId, level);
+                const neighbor = neighbors.find(n => n.id === clickedNode.id);
+                
+                if (neighbor) {
+                    processMove(neighbor.id, neighbor.weight);
+                } else if (clickedNode.id === currentNodeId) {
+                    showToast("Ya estás en este nodo. Haz clic en un vecino (borde azul).");
+                } else {
+                    showToast("Ese nodo no está conectado. Elige un nodo adyacente.");
+                }
+            }
+        });
+
+        function checkWinCondition() {
+            toast.classList.add('toast-hidden');
+            uiElements.userCost.textContent = currentTotalCost;
+            uiElements.optimalCost.textContent = optimalData.cost;
+            
+            // Sistema de Puntos
+            if (currentTotalCost === optimalData.cost) {
+                pendingLevelScore = 100;
+                uiElements.modalTitle.textContent = "¡Excelente!";
+                uiElements.modalTitle.style.color = "var(--success-color)";
+                uiElements.modalMessage.textContent = "¡Has encontrado la ruta más corta posible!";
+                uiElements.userCost.style.color = "var(--success-color)";
+                uiElements.btnNext.style.display = "block";
+                
+                announce(`¡Nivel Completado! Ruta óptima. Ganas 100 puntos.`);
+                setTimeout(() => uiElements.btnNext.focus(), 500);
+
+            } else {
+                const difference = currentTotalCost - optimalData.cost;
+                // Penalidad de 15 puntos por cada unidad de peso extra, min 0
+                pendingLevelScore = Math.max(0, 100 - (difference * 15));
+                
+                uiElements.modalTitle.textContent = "Ruta Subóptima";
+                uiElements.modalTitle.style.color = "var(--warning-color)";
+                uiElements.modalMessage.innerHTML = `Llegaste al destino, pero existe un camino más corto.<br>El camino óptimo es: <strong style="color:var(--accent-color)">${optimalData.path.join(' → ')}</strong>`;
+                uiElements.userCost.style.color = "var(--warning-color)";
+                uiElements.btnNext.style.display = "none";
+                
+                announce(`Ruta subóptima. Costo: ${currentTotalCost}, Óptimo: ${optimalData.cost}. Ganas ${pendingLevelScore} puntos.`);
+                setTimeout(() => uiElements.btnRetry.focus(), 500);
+            }
+            
+            uiElements.levelPoints.textContent = `+${pendingLevelScore}`;
+            uiElements.levelModal.classList.add('visible');
+            uiElements.a11yOptions.innerHTML = '';
+        }
+
+        function undo() {
+            if (currentPath.length > 1) {
+                const lastNode = currentPath.pop();
+                const costRemoved = pathCosts.pop();
+                currentTotalCost -= costRemoved;
+                
+                updateUI();
+                uiElements.levelModal.classList.remove('visible');
+                updateAccessibility();
+                
+                showToast(`Paso deshecho. Regresaste al Nodo ${currentPath[currentPath.length-1]}.`);
+            }
+        }
+
+        function advanceLevel() {
+            globalScore += pendingLevelScore;
+            updateUI(); // Para mostrar nuevo puntaje antes de cargar
+            
+            currentLevelIndex++;
+            if (currentLevelIndex >= levels.length) {
+                saveRecord(playerName, globalScore);
+                showGameComplete();
+            } else {
+                loadLevel(currentLevelIndex);
+            }
+        }
+
+        function retryLevel() {
+            loadLevel(currentLevelIndex);
+        }
+
+        function showGameComplete() {
+            uiElements.levelModal.classList.remove('visible');
+            
+            const container = document.getElementById('game-container');
+            announce(`¡Felicidades ${playerName}! Has terminado con ${globalScore} puntos.`);
+            
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem;">
+                    <h2 style="font-size: 2.5rem; color: var(--success-color); margin-bottom: 1rem;">¡Felicidades, ${playerName}! 🎉</h2>
+                    <p style="font-size: 1.2rem; margin-bottom: 1rem; color: #94a3b8;">Has completado Graph Explorer.</p>
+                    <div style="font-size: 3rem; font-weight: bold; color: var(--accent-color); margin-bottom: 2rem; font-family: 'Fira Code', monospace;">
+                        ${globalScore} Pts
+                    </div>
+                    
+                    <button class="btn btn-secondary" onclick="location.reload()" style="margin-bottom: 15px;">🔄 Jugar de Nuevo</button><br>
+                    <button class="btn btn-primary" onclick="showLeaderboard()" style="margin-bottom: 15px;">🏆 Ver Récords</button><br>
+                    <a href="presentacion.html" class="btn btn-secondary" style="text-decoration: none; display: inline-block;">Volver a la Presentación</a>
+                </div>
+            `;
+            
+            // Re-inyectar modal de leaderboard en el container borrado para que siga funcionando
+            document.body.appendChild(document.getElementById('leaderboard-modal'));
+        }
+
+        // Event Listeners base
+        uiElements.btnUndo.addEventListener('click', undo);
+        uiElements.btnReset.addEventListener('click', () => loadLevel(currentLevelIndex));
+
+        // Inicializamos con el modal visible
+        window.onload = () => {
+            document.getElementById('player-name-input').focus();
+        };
+
+    </script>
+</body>
+</html>
