@@ -56,7 +56,7 @@
             transform: translateY(50px) scale(0.95);
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             padding: 2.5rem 4rem; /* Reducido para dar más espacio */
             background: var(--card-bg);
@@ -338,6 +338,53 @@
             width: 100%;
             height: 100%;
         }
+
+        @media (max-width: 768px) {
+            .two-columns {
+                flex-direction: column;
+            }
+            .slide {
+                padding: 1.5rem 1rem 5rem 1rem; /* Added bottom padding for controls */
+            }
+            h1 { font-size: 1.8rem !important; }
+            h2 { font-size: 1.5rem !important; }
+            .team-grid { 
+                display: flex !important; 
+                flex-direction: column !important; 
+                gap: 0.5rem !important; 
+            }
+            .team-member {
+                grid-column: auto !important;
+            }
+            canvas {
+                max-width: 100%;
+                height: auto;
+            }
+            #presentation-container {
+                width: 95vw;
+                height: 90vh;
+            }
+            .controls {
+                width: 90%;
+                justify-content: space-around;
+                padding: 10px;
+                bottom: 10px;
+            }
+            pre {
+                padding: 1rem;
+                font-size: 0.8rem;
+                overflow-x: auto;
+            }
+            .route-btn {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 0.3rem !important;
+                height: auto !important;
+            }
+            .route-btn span {
+                font-size: 0.95rem;
+            }
+        }
     </style>
 </head>
 
@@ -450,12 +497,12 @@
                 <div class="col" style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; text-align: left;">
                     <p style="margin-bottom: 1rem;"><strong>Compara las rutas de A hacia B:</strong></p>
                     
-                    <button id="btnRoute1" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s;">
+                    <button id="btnRoute1" class="route-btn" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s;">
                         <span>📍 Directa: A → B</span>
                         <span style="color: #ef4444; font-weight: bold;">Costo: 10</span>
                     </button>
                     
-                    <button id="btnRoute2" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 15px; border-radius: 8px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s;">
+                    <button id="btnRoute2" class="route-btn" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 15px; border-radius: 8px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--card-border); color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s;">
                         <span>📍 Con paradas: A → C → D → B</span>
                         <span style="color: #10b981; font-weight: bold;">Costo: 6</span>
                     </button>
@@ -798,7 +845,7 @@
         <!-- Slide 10: Ejemplo Paso a Paso -->
         <div class="slide">
             <h2>Ejemplo Paso a Paso</h2>
-            <div class="two-columns" style="align-items: stretch; max-width: 1000px; margin-top: 1rem; min-height: 420px; gap: 2rem;">
+            <div class="two-columns" style="align-items: stretch; max-width: 1000px; margin-top: 1rem; gap: 2rem;">
                 <div class="col" style="flex: 1.2; display: flex; flex-direction: column;">
                     <div class="canvas-container" style="flex: 1;">
                         <div style="flex: 1; display: flex; justify-content: center; align-items: center; padding: 1rem;">

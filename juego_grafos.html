@@ -187,6 +187,8 @@
         canvas {
             cursor: crosshair;
             display: block;
+            max-width: 100%;
+            height: auto;
         }
 
         .toast-container {
@@ -402,6 +404,41 @@
             gap: 1rem;
         }
 
+        @media (max-width: 768px) {
+            .header-controls {
+                position: static;
+                justify-content: center;
+                margin-bottom: 1rem;
+            }
+            .game-info {
+                flex-wrap: wrap;
+                gap: 1rem;
+                justify-content: center;
+                padding: 1rem;
+            }
+            .stat-box {
+                flex: 1 1 40%;
+                text-align: center;
+            }
+            .container {
+                padding: 1.5rem;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .controls {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+            .modal-content {
+                padding: 1.5rem;
+            }
+            .modal-actions {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
